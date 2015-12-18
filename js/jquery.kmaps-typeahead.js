@@ -1,5 +1,6 @@
 // See https://github.com/jquery-boilerplate/jquery-boilerplate/blob/master/dist/jquery.boilerplate.js
-;(function ( $, window, document, undefined ) {
+;
+(function ($, window, document, undefined) {
     "use strict";
 
     var pluginName = "kmapsTypeahead",
@@ -11,12 +12,13 @@
             ancestor_separator: ' - ',
             root_kmapid: '',
             fields: '',
-            fq: ''
+            fq: '',
+            menu: '',
         };
 
-    function Plugin ( element, options ) {
+    function Plugin(element, options) {
         this.element = element;
-        this.settings = $.extend( {}, defaults, options );
+        this.settings = $.extend({}, defaults, options);
         this._defaults = defaults;
         this._name = pluginName;
         this.init();
@@ -72,23 +74,27 @@
                     }
                 }
             });
+
             terms.initialize();
             input.typeahead(
-                {
-                    highlight: false,
-                    hint: true,
-                    classNames: {
-                        input: 'kmaps-tt-input',
-                        hint: 'kmaps-tt-hint',
-                        menu: 'kmaps-tt-menu',
-                        dataset: 'kmaps-tt-dataset',
-                        suggestion: 'kmaps-tt-suggestion',
-                        empty: 'kmaps-tt-empty',
-                        open: 'kmaps-tt-open',
-                        cursor: 'kmaps-tt-cursor',
-                        highlight: 'kmaps-tt-highlight'
+                $.extend(
+                    settings.menu ? {menu: settings.menu} : {},
+                    {
+                        highlight: false,
+                        hint: true,
+                        classNames: {
+                            input: 'kmaps-tt-input',
+                            hint: 'kmaps-tt-hint',
+                            menu: 'kmaps-tt-menu',
+                            dataset: 'kmaps-tt-dataset',
+                            suggestion: 'kmaps-tt-suggestion',
+                            empty: 'kmaps-tt-empty',
+                            open: 'kmaps-tt-open',
+                            cursor: 'kmaps-tt-cursor',
+                            highlight: 'kmaps-tt-highlight'
+                        }
                     }
-                },
+                ),
                 {
                     name: settings.domain,
                     limit: 999,
@@ -104,7 +110,7 @@
             );
         },
 
-        setValue: function(val) {
+        setValue: function (val) {
             $(this.element).val(val);
         },
 
@@ -119,13 +125,13 @@
     });
 
     // See https://github.com/jquery-boilerplate/jquery-boilerplate/wiki/Extending-jQuery-Boilerplate
-    $.fn[ pluginName ] = function ( options ) {
+    $.fn[pluginName] = function (options) {
         var args = arguments;
 
         if (options === undefined || typeof options === 'object') {
             return this.each(function () {
                 if (!$.data(this, 'plugin_' + pluginName)) {
-                    $.data(this, 'plugin_' + pluginName, new Plugin( this, options ));
+                    $.data(this, 'plugin_' + pluginName, new Plugin(this, options));
                 }
             });
         } else if (typeof options === 'string' && options[0] !== '_' && options !== 'init') {
@@ -134,7 +140,7 @@
             this.each(function () {
                 var instance = $.data(this, 'plugin_' + pluginName);
                 if (instance instanceof Plugin && typeof instance[options] === 'function') {
-                    returns = instance[options].apply( instance, Array.prototype.slice.call( args, 1 ) );
+                    returns = instance[options].apply(instance, Array.prototype.slice.call(args, 1));
                 }
                 if (options === 'destroy') {
                     $.data(this, 'plugin_' + pluginName, null);
@@ -144,4 +150,4 @@
         }
     };
 
-})( jQuery, window, document );
+})(jQuery, window, document);

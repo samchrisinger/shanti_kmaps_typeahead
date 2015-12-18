@@ -16,21 +16,33 @@
     <link type="text/css" rel="stylesheet" href="../css/kmaps-typeahead.css" media="all"/>
 
 <body>
-<!-- BEGIN view section -->
-<div class="view-section">
-    <input type="text" id="typeahead" placeholder="Search for a term" class="form-control">
+<div class="a" style="float:left; width:600px;">
+    <input type="text" id="basic-typeahead" placeholder="Search with visible dropdown" class="form-control">
 </div>
-<!-- END view section -->
+<div class="b" style="margin-left:605px; width:600px;">
+    <input type="text" id="hidden-menu-typeahead" placeholder="Search with hidden dropdown" class="form-control">
+    <div id="hidden-menu-wrapper" style="display: none;">
+    </div>
+</div>
 <script>
     $(function () {
-        var $i = $('#typeahead');
-        $("#typeahead").kmapsTypeahead({
+        $("#basic-typeahead").kmapsTypeahead({
             domain: 'subjects',
             root_kmapid: 6403, //Tibet and the Himalayas
             max_terms: 20,
             fields: 'ancestor_id_path'
-        }).kmapsTypeahead('onSuggest', function(suggestions) {
-            for (var i=0; i<suggestions.length; i++) {
+        }).kmapsTypeahead('onSuggest', function (suggestions) {
+            for (var i = 0; i < suggestions.length; i++) {
+                console.log(suggestions[i]);
+            }
+        });
+        $("#hidden-menu-typeahead").kmapsTypeahead({
+            menu: $("#hidden-menu-wrapper"),
+            domain: 'places',
+            max_terms: 10,
+            fields: 'ancestor_id_path'
+        }).kmapsTypeahead('onSuggest', function (suggestions) {
+            for (var i = 0; i < suggestions.length; i++) {
                 console.log(suggestions[i]);
             }
         });
