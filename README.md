@@ -30,37 +30,37 @@ Then follow these steps:
 
 1. Add a hidden wrapper to your markup:
 
-```
-<div id="menu-wrapper" style="display:none;"></div>
-```
+   ```
+   <div id="menu-wrapper" style="display:none;"></div>
+   ```
 
 2. Render the menu inside the wrapper by specifying the "menu" option:
 
-```
-$("#typeahead").kmapsTypeahead({
-    menu: $("#menu-wrapper"),
-    domain: 'places',
-    max_terms: 10,
-    fields: 'ancestor_id_path'
-})
-```
+   ```
+   $("#typeahead").kmapsTypeahead({
+      menu: $("#menu-wrapper"),
+      domain: 'places',
+      max_terms: 10,
+      fields: 'ancestor_id_path'
+   })
+   ```
 
 3. Register a callback and do something with the suggestions:
 
-```
-$('#typeahead').kmapsTypeahead('onSuggest',
-    function(suggestions) {
-        for (var i=0; i<suggestions.length; i++) {
+   ```
+   $('#typeahead').kmapsTypeahead('onSuggest',
+      function(suggestions) {
+         for (var i=0; i<suggestions.length; i++) {
             highlightSuggestionInTree(suggestions[i]);
-        }
-    }
-);
-```
+         }
+      }
+   );
+   ```
 
 4. Update the value of the input element when it is selected in your UI:
 
-```
-$('#typeahead').kmapsTypeahead('setValue', val);
-```
+   ```
+   $('#typeahead').kmapsTypeahead('setValue', val);
+   ```
 
-For example, see index.html in the html directory.
+For an example, see index.html in the html directory.
