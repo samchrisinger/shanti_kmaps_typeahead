@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>KMapsTypeahead</title>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-once/2.1.1/jquery.once.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+    <script src="../js/jquery.kmaps-typeahead.js"></script>
+
+    <link type="text/css" rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css" media="all"/>
+    <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"
+          media="all"/>
+    <link type="text/css" rel="stylesheet" href="../css/kmaps-typeahead.css" media="all"/>
+
+<body>
+<!-- BEGIN view section -->
+<div class="view-section">
+    <input type="text" id="typeahead" placeholder="Search for a term" class="form-control">
+</div>
+<!-- END view section -->
+<script>
+    $(function () {
+        var $i = $('#typeahead');
+        $("#typeahead").kmapsTypeahead({
+            domain: 'subjects',
+            root_kmapid: 6403, //Tibet and the Himalayas
+            max_terms: 20,
+            fields: 'ancestor_id_path'
+        }).kmapsTypeahead('onSuggest', function(suggestions) {
+            for (var i=0; i<suggestions.length; i++) {
+                console.log(suggestions[i]);
+            }
+        });
+    });
+</script>
+</body>
+</html>
