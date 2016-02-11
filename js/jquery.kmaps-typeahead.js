@@ -6,11 +6,15 @@
     var pluginName = "kmapsTypeahead",
         defaults = {
             term_index: "http://kidx.shanti.virginia.edu/solr/termindex-dev-update",
-            domain: "subjects",
+            domain: "places",
+            root_kmapid: 13735,
             autocomplete_field: 'name_autocomplete',
-            max_terms: 999,
             ancestor_separator: ' - ',
-            root_kmapid: '',
+            max_terms: 999,
+            min_chars: 1,
+            empty_query: 'level_i:2', //ignored unless min_chars = 0
+            empty_limit: 5,
+            empty_sort: '',
             fields: '',
             fq: '',
             menu: '',
@@ -29,7 +33,6 @@
             var input = $(this.element);
             var settings = this.settings;
             var ancestor_field = (settings.domain == 'subjects') ? 'ancestor_ids_default' : 'ancestor_ids_pol.admin.hier';
-            var preq = '&q=' + settings.autocomplete_field + ':';
             var filters = [];
             if (settings.fq) {
                 filters.push(settings.fq);
@@ -42,7 +45,6 @@
                 'indent': true,
                 'fq': filters.concat(['tree:' + settings.domain]),
                 'fl': 'id,header,ancestors,' + ancestor_field + ',' + settings.fields,
-                'rows': settings.max_terms,
                 'hl': true,
                 'hl.fl': settings.autocomplete_field,
                 'hl.simple.pre': '',
@@ -54,18 +56,32 @@
                 queryTokenizer: Bloodhound.tokenizers.whitespace,
                 remote: {
                     url: url,
-                    prepare: function (query, settings) { //http://stackoverflow.com/questions/18688891/typeahead-js-include-dynamic-variable-in-remote-url
+                    prepare: function (query, remote) { //http://stackoverflow.com/questions/18688891/typeahead-js-include-dynamic-variable-in-remote-url
+                        var extras = {};
                         var val = input.val();
                         if (val) {
-                            settings.url += preq + encodeURIComponent(val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ '));
+                            extras = {
+                                'q': settings.autocomplete_field + ':' + encodeURIComponent(val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ ')),
+                                'rows': settings.max_terms
+                            };
                         }
-                        return settings;
+                        else {
+                            extras = {
+                                'q': settings.empty_query,
+                                'rows': settings.empty_limit,
+                                'sort': settings.empty_sort
+                            };
+                        }
+                        remote.url += '&' + $.param(extras, true);
+                        return remote;
                     },
                     filter: function (json) {
                         return $.map(json.response.docs, function (doc) {
+                            var highlighting = json.highlighting[doc.id];
+                            var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
                             return {
                                 doc: doc,
-                                value: json.highlighting[doc.id][settings.autocomplete_field][0], //take first highlight
+                                value: val,
                                 anstring: settings.root_kmapid ?
                                     doc.ancestors.slice(doc[ancestor_field].indexOf(parseInt(settings.root_kmapid))).reverse().join(settings.ancestor_separator) :
                                     doc.ancestors.slice(0).reverse().join(settings.ancestor_separator)
@@ -80,6 +96,7 @@
                 $.extend(
                     settings.menu ? {menu: settings.menu} : {},
                     {
+                        minLength: settings.min_chars,
                         highlight: false,
                         hint: true,
                         classNames: {

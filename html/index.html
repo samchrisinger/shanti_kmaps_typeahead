@@ -30,6 +30,7 @@
             domain: 'subjects',
             root_kmapid: 6403, //Tibet and the Himalayas
             max_terms: 20,
+            min_chars: 0,
             fields: 'ancestor_id_path'
         }).kmapsTypeahead('onSuggest', function (suggestions) {
             for (var i = 0; i < suggestions.length; i++) {
