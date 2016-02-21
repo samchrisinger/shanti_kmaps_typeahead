@@ -44,7 +44,7 @@
                 'wt': 'json',
                 'indent': true,
                 'fq': filters.concat(['tree:' + settings.domain]),
-                'fl': 'id,header,ancestors,' + ancestor_field + ',' + settings.fields,
+                'fl': 'id,header,ancestors,ancestor_id_path,' + ancestor_field + ',' + settings.fields,
                 'hl': true,
                 'hl.fl': settings.autocomplete_field,
                 'hl.simple.pre': '',
@@ -86,6 +86,8 @@
                                     doc.ancestors.slice(doc[ancestor_field].indexOf(parseInt(settings.root_kmapid))).reverse().join(settings.ancestor_separator) :
                                     doc.ancestors.slice(0).reverse().join(settings.ancestor_separator)
                             };
+                        }).sort(function(a, b) {
+                            return a.doc.ancestor_id_path > b.doc.ancestor_id_path;
                         });
                     }
                 }
@@ -134,7 +136,10 @@
         onSuggest: function (fn) {
             $(this.element).bind('typeahead:render',
                 function (ev) {
-                    fn(Array.prototype.slice.call(arguments, 1));
+                    //first synchronous then asynchronous suggestions are returned
+                    if (arguments.length > 0) { //synchronous suggestions will be empty
+                        fn(Array.prototype.slice.call(arguments, 1));
+                    }
                 }
             );
         }
