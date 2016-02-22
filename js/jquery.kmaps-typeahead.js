@@ -86,7 +86,7 @@
                                     doc.ancestors.slice(doc[ancestor_field].indexOf(parseInt(settings.root_kmapid))).reverse().join(settings.ancestor_separator) :
                                     doc.ancestors.slice(0).reverse().join(settings.ancestor_separator)
                             };
-                        }).sort(function(a, b) {
+                        }).sort(function(a, b) { // sort results by ancestry
                             return a.doc.ancestor_id_path > b.doc.ancestor_id_path;
                         });
                     }
@@ -137,7 +137,7 @@
             $(this.element).bind('typeahead:render',
                 function (ev) {
                     //first synchronous then asynchronous suggestions are returned
-                    if (arguments.length > 0) { //synchronous suggestions will be empty
+                    if (arguments.length > 1) { //ignore event, synchronous suggestions will be empty
                         fn(Array.prototype.slice.call(arguments, 1));
                     }
                 }
