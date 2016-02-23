@@ -1,6 +1,6 @@
 /* KMaps Fields CSS */
 .kmaps-value {
-    font-face: bold;
+    font-weight: bold;
 }
 .kmaps-ancestors {
     display: inline-block;
@@ -37,7 +37,10 @@
     -moz-background-clip: padding;
     background-clip: padding-box;
 }
-.kmaps-tt-suggestion {
+.kmaps-tt-message .no-results {
+    color: red;
+}
+.kmaps-tt-suggestion, .kmaps-tt-message {
     display: block;
     padding: 3px 20px;
 }

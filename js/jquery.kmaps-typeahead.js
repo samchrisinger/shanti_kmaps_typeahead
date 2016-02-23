@@ -86,7 +86,7 @@
                                     doc.ancestors.slice(doc[ancestor_field].indexOf(parseInt(settings.root_kmapid))).reverse().join(settings.ancestor_separator) :
                                     doc.ancestors.slice(0).reverse().join(settings.ancestor_separator)
                             };
-                        }).sort(function(a, b) { // sort results by ancestry
+                        }).sort(function (a, b) { // sort results by ancestry
                             return a.doc.ancestor_id_path > b.doc.ancestor_id_path;
                         });
                     }
@@ -120,6 +120,12 @@
                     display: 'value',
                     source: terms,
                     templates: {
+                        pending: function() {
+                            return '<div class="kmaps-tt-message"><span class="searching">Searching...</span></div>'
+                        },
+                        notFound: function () {
+                            return '<div class="kmaps-tt-message"><span class="no-results">No results for this search.</span></div>';
+                        },
                         suggestion: function (data) {
                             return '<div><span class="kmaps-term">' + data.value + '</span> ' +
                                 '<span class="kmaps-ancestors">' + data.anstring + '</span></div>';
@@ -134,10 +140,21 @@
         },
 
         onSuggest: function (fn) {
-            $(this.element).bind('typeahead:render',
+            var async = false;
+            $(this.element).bind('typeahead:asyncrequest',
                 function (ev) {
-                    //first synchronous then asynchronous suggestions are returned
-                    if (arguments.length > 1) { //ignore event, synchronous suggestions will be empty
+                    async = true;
+                }
+            ).bind('typeahead:asynccancel',
+                function (ev) {
+                    async = false;
+                }
+            ).bind('typeahead:render',
+                function (ev) {
+                    // first synchronous then asynchronous suggestions are returned
+                    // synchronous suggestions are empty because our suggestions are all asynchronously fetched from solr
+                    if (async) {
+                        async = false;
                         fn(Array.prototype.slice.call(arguments, 1));
                     }
                 }
