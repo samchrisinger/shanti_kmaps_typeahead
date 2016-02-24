@@ -18,6 +18,7 @@
             fields: '',
             fq: '',
             menu: '',
+            no_results_msg: '',
         };
 
     function Plugin(element, options) {
@@ -123,8 +124,13 @@
                         pending: function() {
                             return '<div class="kmaps-tt-message"><span class="searching">Searching...</span></div>'
                         },
-                        notFound: function () {
-                            return '<div class="kmaps-tt-message"><span class="no-results">No results for this search.</span></div>';
+                        header: function (data) {
+                            var msg = 'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') +  ' for <em>' + data.query + '</em>.';
+                            return '<div class="kmaps-tt-message"><span class="results">' + msg + '</em></span></div>';
+                        },
+                        notFound: function (data) {
+                            var msg = 'No results for <em>' + data.query + '</em>. ' + settings.no_results_msg;
+                            return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
                         },
                         suggestion: function (data) {
                             return '<div><span class="kmaps-term">' + data.value + '</span> ' +
