@@ -122,7 +122,7 @@
                     source: terms,
                     templates: {
                         pending: function() {
-                            return '<div class="kmaps-tt-message"><span class="searching">Searching...</span></div>'
+                            return '<div class="kmaps-tt-message"><span class="searching">Searching ...</span></div>'
                         },
                         header: function (data) {
                             var msg = 'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') +  ' for <em>' + data.query + '</em>.';
