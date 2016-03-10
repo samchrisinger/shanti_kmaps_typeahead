@@ -16,7 +16,6 @@ $('#typeahead').kmapsTypeahead({
     domain: "places", //or subjects
     root_kmap_id: 6403, //Tibetan and Himalayan Library
     max_terms: 20, //only retrieve this many matches
-    fields: 'ancestor_id_path' //add this field to the Solr document
 });
 ```
 

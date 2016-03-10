@@ -9,6 +9,7 @@
             domain: "places",
             root_kmapid: 13735,
             autocomplete_field: 'name_autocomplete',
+            ancestors: 'show', //get, show or off
             ancestor_separator: ' - ',
             max_terms: 999,
             min_chars: 1,
@@ -33,6 +34,7 @@
         init: function () {
             var input = $(this.element);
             var settings = this.settings;
+            var use_ancestry = (settings.ancestors == 'get' || settings.ancestors == 'show') ? true : false;
             var ancestor_field = (settings.domain == 'subjects') ? 'ancestor_ids_default' : 'ancestor_ids_pol.admin.hier';
             var filters = [];
             if (settings.fq) {
@@ -41,11 +43,20 @@
             if (settings.root_kmapid) {
                 filters.push(ancestor_field + ':' + settings.root_kmapid);
             }
+            var fl = [];
+            fl.push('id', 'header');
+            if (use_ancestry) {
+                fl.push('ancestors', 'ancestor_id_path');
+                fl.push(ancestor_field);
+            }
+            if (settings.fields) {
+                fl = fl.concat(settings.fields.split(','));
+            }
             var params = {
                 'wt': 'json',
                 'indent': true,
                 'fq': filters.concat(['tree:' + settings.domain]),
-                'fl': 'id,header,ancestors,ancestor_id_path,' + ancestor_field + ',' + settings.fields,
+                'fl': fl.join(),
                 'hl': true,
                 'hl.fl': settings.autocomplete_field,
                 'hl.simple.pre': '',
@@ -77,19 +88,31 @@
                         return remote;
                     },
                     filter: function (json) {
-                        return $.map(json.response.docs, function (doc) {
-                            var highlighting = json.highlighting[doc.id];
-                            var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
-                            return {
-                                doc: doc,
-                                value: val,
-                                anstring: settings.root_kmapid ?
-                                    doc.ancestors.slice(doc[ancestor_field].indexOf(parseInt(settings.root_kmapid))).reverse().join(settings.ancestor_separator) :
-                                    doc.ancestors.slice(0).reverse().join(settings.ancestor_separator)
-                            };
-                        }).sort(function (a, b) { // sort results by ancestry
-                            return a.doc.ancestor_id_path > b.doc.ancestor_id_path;
-                        });
+                        if (use_ancestry) {
+                            return $.map(json.response.docs, function (doc) {
+                                var highlighting = json.highlighting[doc.id];
+                                var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
+                                return {
+                                    doc: doc,
+                                    value: val,
+                                    anstring: settings.root_kmapid ?
+                                        doc.ancestors.slice(doc[ancestor_field].indexOf(parseInt(settings.root_kmapid))).reverse().join(settings.ancestor_separator) :
+                                        doc.ancestors.slice(0).reverse().join(settings.ancestor_separator)
+                                };
+                            }).sort(function (a, b) { // sort results by ancestry
+                                return a.doc.ancestor_id_path > b.doc.ancestor_id_path;
+                            });
+                        }
+                        else {
+                            return $.map(json.response.docs, function (doc) {
+                                var highlighting = json.highlighting[doc.id];
+                                var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
+                                return {
+                                    doc: doc,
+                                    value: val,
+                                };
+                            });
+                        }
                     }
                 }
             });
@@ -133,8 +156,13 @@
                             return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
                         },
                         suggestion: function (data) {
-                            return '<div><span class="kmaps-term">' + data.value + '</span> ' +
-                                '<span class="kmaps-ancestors">' + data.anstring + '</span></div>';
+                            if (use_ancestry) {
+                                return '<div><span class="kmaps-term">' + data.value + '</span> ' +
+                                    '<span class="kmaps-ancestors">' + data.anstring + '</span></div>';
+                            }
+                            else {
+                                return '<div><span class="kmaps-term">' + data.value + '</span></div>';
+                            }
                         }
                     }
                 }
