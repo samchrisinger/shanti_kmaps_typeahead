@@ -9,7 +9,7 @@
             domain: "places",
             root_kmapid: 13735,
             autocomplete_field: 'name_autocomplete',
-            ancestors: 'show', //get, show or off
+            ancestors: 'on', //on or off
             ancestor_separator: ' - ',
             max_terms: 999,
             min_chars: 1,
@@ -34,7 +34,7 @@
         init: function () {
             var input = $(this.element);
             var settings = this.settings;
-            var use_ancestry = (settings.ancestors == 'get' || settings.ancestors == 'show') ? true : false;
+            var use_ancestry = (settings.ancestors == 'on');
             var ancestor_field = (settings.domain == 'subjects') ? 'ancestor_ids_default' : 'ancestor_ids_pol.admin.hier';
             var filters = [];
             if (settings.fq) {
