@@ -9,17 +9,20 @@
             domain: "places",
             root_kmapid: 13735,
             autocomplete_field: 'name_autocomplete',
-            ancestors: 'on', //on or off
-            ancestor_separator: ' - ',
             max_terms: 999,
             min_chars: 1,
+            ancestors: 'on',
+            ancestor_separator: ' - ',
+            prefetch_facets: 'off',
+            prefetch_field: 'feature_types_autocomplete',
+            prefetch_filters: ['tree:places', 'ancestor_id_path:13735'],
             empty_query: 'level_i:2', //ignored unless min_chars = 0
             empty_limit: 5,
             empty_sort: '',
             fields: '',
-            fq: '',
+            filters: '',
             menu: '',
-            no_results_msg: '',
+            no_results_msg: ''
         };
 
     function Plugin(element, options) {
@@ -32,16 +35,20 @@
 
     $.extend(Plugin.prototype, {
         init: function () {
+            var kmaps_engine; //Bloodhound instance
             var input = $(this.element);
             var settings = this.settings;
+
             var use_ancestry = (settings.ancestors == 'on');
+            var prefetch_facets = (settings.prefetch_facets == 'on');
             var ancestor_field = (settings.domain == 'subjects') ? 'ancestor_ids_default' : 'ancestor_ids_pol.admin.hier';
-            var filters = [];
-            if (settings.fq) {
-                filters.push(settings.fq);
+
+            var fq = [];
+            if (settings.filters) {
+                fq.push(settings.filters);
             }
             if (settings.root_kmapid) {
-                filters.push(ancestor_field + ':' + settings.root_kmapid);
+                fq.push(ancestor_field + ':' + settings.root_kmapid);
             }
             var fl = [];
             fl.push('id', 'header');
@@ -55,7 +62,7 @@
             var params = {
                 'wt': 'json',
                 'indent': true,
-                'fq': filters.concat(['tree:' + settings.domain]),
+                'fq': fq.concat(['tree:' + settings.domain]),
                 'fl': fl.join(),
                 'hl': true,
                 'hl.fl': settings.autocomplete_field,
@@ -63,9 +70,13 @@
                 'hl.simple.post': ''
             };
             var url = settings.term_index + '/select?' + $.param(params, true);
-            var terms = new Bloodhound({
+            var options = {
                 datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
                 queryTokenizer: Bloodhound.tokenizers.whitespace,
+                sufficient: settings.max_terms,
+                identify: function (term) {
+                    return term.id;
+                },
                 remote: {
                     url: url,
                     prepare: function (query, remote) { //http://stackoverflow.com/questions/18688891/typeahead-js-include-dynamic-variable-in-remote-url
@@ -73,7 +84,7 @@
                         var val = input.val();
                         if (val) {
                             extras = {
-                                'q': settings.autocomplete_field + ':' + encodeURIComponent(val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ ')),
+                                'q': settings.autocomplete_field + ':' + val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ '),
                                 'rows': settings.max_terms
                             };
                         }
@@ -88,36 +99,81 @@
                         return remote;
                     },
                     filter: function (json) {
-                        if (use_ancestry) {
-                            return $.map(json.response.docs, function (doc) {
-                                var highlighting = json.highlighting[doc.id];
-                                var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
-                                return {
-                                    doc: doc,
-                                    value: val,
+                        var filtered = $.map(json.response.docs, function (doc) {
+                            var highlighting = json.highlighting[doc.id];
+                            var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
+                            var item = {
+                                id: doc.id.substring(doc.id.indexOf('-') + 1),
+                                doc: doc,
+                                value: val,
+                                count: 0 // for good measure
+                            };
+                            if (use_ancestry) {
+                                $.extend(item, {
                                     anstring: settings.root_kmapid ?
                                         doc.ancestors.slice(doc[ancestor_field].indexOf(parseInt(settings.root_kmapid))).reverse().join(settings.ancestor_separator) :
                                         doc.ancestors.slice(0).reverse().join(settings.ancestor_separator)
-                                };
-                            }).sort(function (a, b) { // sort results by ancestry
+                                });
+                            }
+                            return item;
+                        });
+                        // exclude terms that were already prefetched
+                        // ideally other matches would fill the gap
+                        filtered.filter(function (term) {
+                            return (kmaps_engine.get([term.id]).length == 0);
+                        });
+                        if (use_ancestry) {
+                            filtered.sort(function (a, b) { // sort results by ancestry
                                 return a.doc.ancestor_id_path > b.doc.ancestor_id_path;
                             });
                         }
-                        else {
-                            return $.map(json.response.docs, function (doc) {
-                                var highlighting = json.highlighting[doc.id];
-                                var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
-                                return {
-                                    doc: doc,
-                                    value: val,
-                                };
-                            });
-                        }
+                        return filtered;
                     }
                 }
-            });
-
-            terms.initialize();
+            };
+            if (prefetch_facets) {
+                var hasAlready = function (arr, id) {
+                    return arr.some(function (el) {
+                        return el.id == id;
+                    });
+                };
+                var prefetch_params = {
+                    'wt': 'json',
+                    'indent': true,
+                    'fq': settings.prefetch_filters,
+                    'fl': '*',
+                    'q': '*:*',
+                    'rows': 0,
+                    'facet': true,
+                    'facet.field': settings.prefetch_field,
+                    'facet.sort': 'count',
+                    'facet.limit': -1,
+                    'facet.mincount': 1
+                };
+                $.extend(options, {
+                    prefetch: {
+                        url: settings.term_index + '/select?' + $.param(prefetch_params, true),
+                        cache: false,
+                        filter: function (json) {
+                            var raw = json.facet_counts.facet_fields[settings.prefetch_field];
+                            var facets = [];
+                            for (var i = 0; i < raw.length; i += 2) {
+                                var val = raw[i].substring(raw[i].indexOf('|') + 1).split(":");
+                                if (!hasAlready(facets, val[0])) {
+                                    facets.push({
+                                        id: val[0],
+                                        value: val[1].replace(/_/g, ' '),
+                                        count: parseInt(raw[i + 1])
+                                    });
+                                }
+                            }
+                            return facets;
+                        }
+                    }
+                });
+            }
+            kmaps_engine = new Bloodhound(options);
+            kmaps_engine.initialize();
             input.typeahead(
                 $.extend(
                     settings.menu ? {menu: settings.menu} : {},
@@ -140,15 +196,17 @@
                 ),
                 {
                     name: settings.domain,
-                    limit: 999,
+                    limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
                     display: 'value',
-                    source: terms,
+                    source: kmaps_engine,
                     templates: {
-                        pending: function() {
+                        pending: function () {
                             return '<div class="kmaps-tt-message"><span class="searching">Searching ...</span></div>'
                         },
                         header: function (data) {
-                            var msg = 'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') +  ' for <em>' + data.query + '</em>.';
+                            var msg = prefetch_facets ? // mixing sync and async screws up count
+                                'Showing results for <em>' + data.query + '</em>' :
+                                'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') + ' for <em>' + data.query + '</em>.';
                             return '<div class="kmaps-tt-message"><span class="results">' + msg + '</em></span></div>';
                         },
                         notFound: function (data) {
@@ -156,13 +214,9 @@
                             return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
                         },
                         suggestion: function (data) {
-                            if (use_ancestry) {
-                                return '<div><span class="kmaps-term">' + data.value + '</span> ' +
-                                    '<span class="kmaps-ancestors">' + data.anstring + '</span></div>';
-                            }
-                            else {
-                                return '<div><span class="kmaps-term">' + data.value + '</span></div>';
-                            }
+                            return '<div><span class="kmaps-term">' + data.value + '</span>' +
+                                (prefetch_facets ? ' <span class="kmaps-count">(' + data.count + ')</span>' : '') +
+                                (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
                         }
                     }
                 }
