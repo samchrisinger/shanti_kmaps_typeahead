@@ -14,7 +14,7 @@
             ancestors: 'on',
             ancestor_separator: ' - ',
             prefetch_facets: 'off',
-            prefetch_field: 'feature_types_autocomplete',
+            prefetch_field: 'feature_types_xfacet',
             prefetch_filters: ['tree:places', 'ancestor_id_path:13735'],
             empty_query: 'level_i:2', //ignored unless min_chars = 0
             empty_limit: 5,
@@ -132,11 +132,6 @@
                 }
             };
             if (prefetch_facets) {
-                var hasAlready = function (arr, id) {
-                    return arr.some(function (el) {
-                        return el.id == id;
-                    });
-                };
                 var prefetch_params = {
                     'wt': 'json',
                     'indent': true,
@@ -158,14 +153,12 @@
                             var raw = json.facet_counts.facet_fields[settings.prefetch_field];
                             var facets = [];
                             for (var i = 0; i < raw.length; i += 2) {
-                                var val = raw[i].substring(raw[i].indexOf('|') + 1).split(":");
-                                if (!hasAlready(facets, val[0])) {
-                                    facets.push({
-                                        id: val[0],
-                                        value: val[1].replace(/_/g, ' '),
-                                        count: parseInt(raw[i + 1])
-                                    });
-                                }
+                                var spl = raw[i].indexOf(':');
+                                facets.push({
+                                    id: raw[i].substring(0, spl),
+                                    value: raw[i].substring(spl + 1),
+                                    count: parseInt(raw[i + 1])
+                                });
                             }
                             return facets;
                         }
@@ -205,8 +198,8 @@
                         },
                         header: function (data) {
                             var msg = prefetch_facets ? // mixing sync and async screws up count
-                                'Showing results for <em>' + data.query + '</em>' :
-                                'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') + ' for <em>' + data.query + '</em>.';
+                            'Showing results for <em>' + data.query + '</em>' :
+                            'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') + ' for <em>' + data.query + '</em>.';
                             return '<div class="kmaps-tt-message"><span class="results">' + msg + '</em></span></div>';
                         },
                         notFound: function (data) {
