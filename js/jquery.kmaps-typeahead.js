@@ -16,6 +16,7 @@
             prefetch_facets: 'off',
             prefetch_field: 'feature_types_xfacet',
             prefetch_filters: ['tree:places', 'ancestor_id_path:13735'],
+            prefetch_limit: -1,
             empty_query: 'level_i:2', //ignored unless min_chars = 0
             empty_limit: 5,
             empty_sort: '',
@@ -28,6 +29,7 @@
     function Plugin(element, options) {
         this.element = element;
         this.settings = $.extend({}, defaults, options);
+        this.fq = [];
         this._defaults = defaults;
         this._name = pluginName;
         this.init();
@@ -35,20 +37,21 @@
 
     $.extend(Plugin.prototype, {
         init: function () {
-            var kmaps_engine; //Bloodhound instance
-            var input = $(this.element);
-            var settings = this.settings;
+            var plugin = this;
+            var kmaps_engine, facet_counts; //Bloodhound instance
+            var input = $(plugin.element);
+            var settings = plugin.settings;
 
             var use_ancestry = (settings.ancestors == 'on');
             var prefetch_facets = (settings.prefetch_facets == 'on');
             var ancestor_field = (settings.domain == 'subjects') ? 'ancestor_ids_default' : 'ancestor_ids_pol.admin.hier';
 
-            var fq = [];
+            plugin.fq.push('tree:' + settings.domain);
             if (settings.filters) {
-                fq.push(settings.filters);
+                plugin.fq.push(settings.filters);
             }
             if (settings.root_kmapid) {
-                fq.push(ancestor_field + ':' + settings.root_kmapid);
+                plugin.fq.push(ancestor_field + ':' + settings.root_kmapid);
             }
             var fl = [];
             fl.push('id', 'header');
@@ -62,7 +65,6 @@
             var params = {
                 'wt': 'json',
                 'indent': true,
-                'fq': fq.concat(['tree:' + settings.domain]),
                 'fl': fl.join(),
                 'hl': true,
                 'hl.fl': settings.autocomplete_field,
@@ -85,15 +87,21 @@
                         if (val) {
                             extras = {
                                 'q': settings.autocomplete_field + ':' + val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ '),
-                                'rows': settings.max_terms
+                                'rows': settings.max_terms,
+                                'fq': plugin.fq
                             };
                         }
                         else {
-                            extras = {
-                                'q': settings.empty_query,
-                                'rows': settings.empty_limit,
-                                'sort': settings.empty_sort
-                            };
+                            if (prefetch_facets) {
+
+                            }
+                            else {
+                                extras = {
+                                    'q': settings.empty_query,
+                                    'rows': settings.empty_limit,
+                                    'sort': settings.empty_sort
+                                };
+                            }
                         }
                         remote.url += '&' + $.param(extras, true);
                         return remote;
@@ -141,8 +149,8 @@
                     'rows': 0,
                     'facet': true,
                     'facet.field': settings.prefetch_field,
+                    'facet.limit': settings.prefetch_limit,
                     'facet.sort': 'count',
-                    'facet.limit': -1,
                     'facet.mincount': 1
                 };
                 $.extend(options, {
@@ -164,56 +172,123 @@
                         }
                     }
                 });
+                facet_counts = new Bloodhound({
+                    datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
+                    queryTokenizer: Bloodhound.tokenizers.whitespace,
+                    sufficient: settings.max_terms,
+                    identify: function (term) {
+                        return term.id;
+                    },
+                    remote: {
+                        url: settings.term_index + '/select?' + $.param(prefetch_params, true),
+                        cache: false, // change to true
+                        filter: function (json) {
+                            var raw = json.facet_counts.facet_fields[settings.prefetch_field];
+                            var facets = [];
+                            for (var i = 0; i < raw.length; i += 2) {
+                                var spl = raw[i].indexOf(':');
+                                facets.push({
+                                    id: raw[i].substring(0, spl),
+                                    value: raw[i].substring(spl + 1),
+                                    count: parseInt(raw[i + 1])
+                                });
+                            }
+                            return facets;
+                        }
+                    }
+                });
+                facet_counts.initialize();
             }
             kmaps_engine = new Bloodhound(options);
             kmaps_engine.initialize();
-            input.typeahead(
-                $.extend(
-                    settings.menu ? {menu: settings.menu} : {},
-                    {
-                        minLength: settings.min_chars,
-                        highlight: false,
-                        hint: true,
-                        classNames: {
-                            input: 'kmaps-tt-input',
-                            hint: 'kmaps-tt-hint',
-                            menu: 'kmaps-tt-menu',
-                            dataset: 'kmaps-tt-dataset',
-                            suggestion: 'kmaps-tt-suggestion',
-                            empty: 'kmaps-tt-empty',
-                            open: 'kmaps-tt-open',
-                            cursor: 'kmaps-tt-cursor',
-                            highlight: 'kmaps-tt-highlight'
-                        }
-                    }
-                ),
+            var typeaheadOptions = $.extend(
+                settings.menu ? {menu: settings.menu} : {},
                 {
-                    name: settings.domain,
-                    limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
-                    display: 'value',
-                    source: kmaps_engine,
-                    templates: {
-                        pending: function () {
-                            return '<div class="kmaps-tt-message"><span class="searching">Searching ...</span></div>'
-                        },
-                        header: function (data) {
-                            var msg = prefetch_facets ? // mixing sync and async screws up count
-                            'Showing results for <em>' + data.query + '</em>' :
-                            'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') + ' for <em>' + data.query + '</em>.';
-                            return '<div class="kmaps-tt-message"><span class="results">' + msg + '</em></span></div>';
-                        },
-                        notFound: function (data) {
-                            var msg = 'No results for <em>' + data.query + '</em>. ' + settings.no_results_msg;
-                            return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
-                        },
-                        suggestion: function (data) {
-                            return '<div><span class="kmaps-term">' + data.value + '</span>' +
-                                (prefetch_facets ? ' <span class="kmaps-count">(' + data.count + ')</span>' : '') +
-                                (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
-                        }
+                    minLength: settings.min_chars,
+                    highlight: false,
+                    hint: true,
+                    classNames: {
+                        input: 'kmaps-tt-input',
+                        hint: 'kmaps-tt-hint',
+                        menu: 'kmaps-tt-menu',
+                        dataset: 'kmaps-tt-dataset',
+                        suggestion: 'kmaps-tt-suggestion',
+                        empty: 'kmaps-tt-empty',
+                        open: 'kmaps-tt-open',
+                        cursor: 'kmaps-tt-cursor',
+                        highlight: 'kmaps-tt-highlight'
                     }
                 }
             );
+            var typeaheadSearch = {
+                name: settings.domain,
+                limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
+                display: 'value',
+                source: kmaps_engine,
+                templates: {
+                    pending: function () {
+                        return '<div class="kmaps-tt-message"><span class="searching">Searching ...</span></div>'
+                    },
+                    header: function (data) {
+                        var msg = prefetch_facets ? // mixing sync and async screws up count
+                        'Showing results for <em>' + data.query + '</em>' :
+                        'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') + ' for <em>' + data.query + '</em>.';
+                        return '<div class="kmaps-tt-message"><span class="results">' + msg + '</em></span></div>';
+                    },
+                    notFound: function (data) {
+                        var msg = 'No results for <em>' + data.query + '</em>. ' + settings.no_results_msg;
+                        return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
+                    },
+                    suggestion: function (data) {
+                        return '<div><span class="kmaps-term">' + data.value + '</span>' +
+                            (prefetch_facets ? ' <span class="kmaps-count">(' + data.count + ')</span>' : '') +
+                            (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
+                    }
+                }
+            };
+            if (prefetch_facets) {
+                input.typeahead(typeaheadOptions,
+                    /*{
+                        name: 'facet_counts',
+                        limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
+                        display: 'value',
+                        source: facet_counts,
+                        templates: {
+                            pending: function () {
+                                return '<div class="kmaps-tt-message"><span class="searching">One moment ...</span></div>'
+                            },
+                            header: function (data) {
+                                return '<div class="kmaps-tt-message">Add another filter</div>';
+                            },
+                            suggestion: function (data) {
+                                return '<div><span class="kmaps-term">' + data.value + '</span> <span class="kmaps-count">(' + data.count + ')</span>' +
+                                    (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
+                            }
+                        }
+                    },*/
+                    typeaheadSearch
+                );
+            }
+            else {
+                input.typeahead(typeaheadOptions, typeaheadSearch);
+            }
+        },
+
+        addFilters: function(filters) {
+            for (var i=0; i<filters.length; i++) {
+                if (this.fq.indexOf(filters[i]) == -1) {
+                    this.fq.unshift(filters[i]);
+                }
+            }
+        },
+
+        removeFilters: function(filters) {
+            for (var i=0; i<filters.length; i++) {
+                var k = this.fq.indexOf(filters[i]);
+                if (k != -1) {
+                    this.fq.splice(k, 1);
+                }
+            }
         },
 
         setValue: function (val) {
