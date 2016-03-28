@@ -36,9 +36,6 @@
     -webkit-background-clip: padding-box;
     -moz-background-clip: padding;
     background-clip: padding-box;
-
-    max-height: 300px;
-    overflow-y: auto;
 }
 .kmaps-tt-suggestion, .kmaps-tt-message {
     display: block;
@@ -62,3 +59,8 @@
 .kmaps-tt-suggestion p {
     margin: 0;
 }
+
+.zero-results-facet {
+    color: gray;
+}
+/* .zero-results-facet.kmaps-tt-suggestion.kmaps-tt-cursor { } */

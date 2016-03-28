@@ -275,7 +275,9 @@
                     return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
                 },
                 suggestion: function (data) {
-                    return '<div><span class="kmaps-term">' + data.value + '</span> <span class="kmaps-count">(' + data.count + ')</span>' +
+                    return '<div class="' + (data.count > 0 ? "selectable-facet" : "zero-results-facet") + '"</div>' +
+                        '<span class="kmaps-term">' + data.value + '</span> ' +
+                        '<span class="kmaps-count">(' + data.count + ')</span>' +
                         (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
                 }
             });
