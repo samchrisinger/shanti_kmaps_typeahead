@@ -36,6 +36,9 @@
     -webkit-background-clip: padding-box;
     -moz-background-clip: padding;
     background-clip: padding-box;
+
+    max-height: 300px;
+    overflow-y: auto;
 }
 .kmaps-tt-suggestion, .kmaps-tt-message {
     display: block;

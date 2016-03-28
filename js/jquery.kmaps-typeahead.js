@@ -10,6 +10,7 @@
             root_kmapid: 13735,
             autocomplete_field: 'name_autocomplete',
             max_terms: 999,
+            max_defaults: 50,
             min_chars: 1,
             ancestors: 'on',
             ancestor_separator: ' - ',
@@ -30,6 +31,7 @@
         this.element = element;
         this.settings = $.extend({}, defaults, options);
         this.fq = [];
+        this.refacet = null;
         this._defaults = defaults;
         this._name = pluginName;
         this.init();
@@ -92,10 +94,7 @@
                             };
                         }
                         else {
-                            if (prefetch_facets) {
-
-                            }
-                            else {
+                            if (!prefetch_facets) { // prefetch_facets shouldn't get here anyway
                                 extras = {
                                     'q': settings.empty_query,
                                     'rows': settings.empty_limit,
@@ -139,6 +138,9 @@
                     }
                 }
             };
+            var sortFacetsDescending = function (a, b) {
+                return b.count - a.count;
+            };
             if (prefetch_facets) {
                 var prefetch_params = {
                     'wt': 'json',
@@ -154,6 +156,7 @@
                     'facet.mincount': 1
                 };
                 $.extend(options, {
+                    sorter: sortFacetsDescending,
                     prefetch: {
                         url: settings.term_index + '/select?' + $.param(prefetch_params, true),
                         cache: false,
@@ -165,7 +168,8 @@
                                 facets.push({
                                     id: raw[i].substring(0, spl),
                                     value: raw[i].substring(spl + 1),
-                                    count: parseInt(raw[i + 1])
+                                    count: parseInt(raw[i + 1]),
+                                    refacet: false
                                 });
                             }
                             return facets;
@@ -182,6 +186,15 @@
                     remote: {
                         url: settings.term_index + '/select?' + $.param(prefetch_params, true),
                         cache: false, // change to true
+                        prepare: function (query, remote) {
+                            if (plugin.refacet !== null) {
+                                remote.url += '&' + $.param({'fq': plugin.refacet}, true);
+                            }
+                            else { // don't go to the server at all
+                                remote.url = null;
+                            }
+                            return remote;
+                        },
                         filter: function (json) {
                             var raw = json.facet_counts.facet_fields[settings.prefetch_field];
                             var facets = [];
@@ -190,7 +203,8 @@
                                 facets.push({
                                     id: raw[i].substring(0, spl),
                                     value: raw[i].substring(spl + 1),
-                                    count: parseInt(raw[i + 1])
+                                    count: parseInt(raw[i + 1]),
+                                    refacet: true
                                 });
                             }
                             return facets;
@@ -200,7 +214,7 @@
                 facet_counts.initialize();
             }
             kmaps_engine = new Bloodhound(options);
-            kmaps_engine.initialize();
+
             var typeaheadOptions = $.extend(
                 settings.menu ? {menu: settings.menu} : {},
                 {
@@ -220,72 +234,130 @@
                     }
                 }
             );
-            var typeaheadSearch = {
-                name: settings.domain,
-                limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
-                display: 'value',
-                source: kmaps_engine,
-                templates: {
-                    pending: function () {
-                        return '<div class="kmaps-tt-message"><span class="searching">Searching ...</span></div>'
-                    },
-                    header: function (data) {
-                        var msg = prefetch_facets ? // mixing sync and async screws up count
-                        'Showing results for <em>' + data.query + '</em>' :
-                        'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's') + ' for <em>' + data.query + '</em>.';
-                        return '<div class="kmaps-tt-message"><span class="results">' + msg + '</em></span></div>';
-                    },
-                    notFound: function (data) {
-                        var msg = 'No results for <em>' + data.query + '</em>. ' + settings.no_results_msg;
-                        return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
-                    },
-                    suggestion: function (data) {
-                        return '<div><span class="kmaps-term">' + data.value + '</span>' +
-                            (prefetch_facets ? ' <span class="kmaps-count">(' + data.count + ')</span>' : '') +
-                            (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
-                    }
+
+            var default_templates = {
+                pending: function () {
+                    return '<div class="kmaps-tt-message kmaps-tt-searching">Searching ...</div>'
                 }
             };
+            var templates = $.extend({}, default_templates, {
+                header: function (data) {
+                    var nres = 'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's');
+                    return '<div class="kmaps-tt-message kmaps-tt-results">' + nres + ' for <span class="kmaps-tt-query">' + data.query + '</span></div>';
+                },
+                notFound: function (data) {
+                    var msg = 'No results for <span class="kmaps-tt-query">' + data.query + '</span>. ' + settings.no_results_msg;
+                    return '<div class="kmaps-tt-message kmaps-tt-no-results">'+ msg + '</div>';
+                },
+                suggestion: function (data) {
+                    return '<div><span class="kmaps-term">' + data.value + '</span>' +
+                        (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
+                }
+            });
+            var prefetch_templates = $.extend({}, default_templates, {
+                header: function (data) {
+                    var msg;
+                    if (data.query === '') {
+                        if (settings.max_defaults > data.suggestions.length) {
+                            msg = 'Showing all ' + data.suggestions.length + ' filters';
+                        }
+                        else {
+                            msg = 'Showing top ' + settings.max_defaults + ' filters';
+                        }
+                    }
+                    else {
+                        msg = 'Showing filters with <em>' + data.query + '</em>';
+                    }
+                    return '<div class="kmaps-tt-message"><span class="results">' + msg + '</em></span></div>';
+                },
+                notFound: function (data) {
+                    var msg = 'No filters with <em>' + data.query + '</em>. ' + settings.no_results_msg;
+                    return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
+                },
+                suggestion: function (data) {
+                    return '<div><span class="kmaps-term">' + data.value + '</span> <span class="kmaps-count">(' + data.count + ')</span>' +
+                        (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
+                }
+            });
+
             if (prefetch_facets) {
+                var kmapsEngineWithDefaults = function(q, sync, async) {
+                    if (q === '') {
+                        var facets = kmaps_engine.all();
+                        if (facets.length > 0 && settings.max_defaults > 0) {
+                            sync(facets.sort(sortFacetsDescending).slice(0, Math.min(facets.length, settings.max_defaults)));
+                        }
+                        else {
+                            kmaps_engine.search(q, sync, async);
+                        }
+                    }
+                    else {
+                        kmaps_engine.search(q, sync, async);
+                    }
+                };
                 input.typeahead(typeaheadOptions,
-                    /*{
+                    {
                         name: 'facet_counts',
                         limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
                         display: 'value',
                         source: facet_counts,
                         templates: {
-                            pending: function () {
-                                return '<div class="kmaps-tt-message"><span class="searching">One moment ...</span></div>'
-                            },
                             header: function (data) {
-                                return '<div class="kmaps-tt-message">Add another filter</div>';
+                                return '<div class="kmaps-tt-message">Narrow your search</div>';
                             },
                             suggestion: function (data) {
                                 return '<div><span class="kmaps-term">' + data.value + '</span> <span class="kmaps-count">(' + data.count + ')</span>' +
                                     (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
                             }
                         }
-                    },*/
-                    typeaheadSearch
+                    },
+                    {
+                        name: settings.domain,
+                        limit: 999,//parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
+                        display: 'value',
+                        source: kmapsEngineWithDefaults,
+                        templates: prefetch_templates
+                    }
                 );
             }
             else {
-                input.typeahead(typeaheadOptions, typeaheadSearch);
+                input.typeahead(typeaheadOptions,
+                    {
+                        name: settings.domain,
+                        limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
+                        display: 'value',
+                        source: kmaps_engine,
+                        templates: templates
+                    }
+                );
             }
         },
 
-        addFilters: function(filters) {
-            for (var i=0; i<filters.length; i++) {
+        resetPrefetch: function () {
+            this.refacet = null;
+        },
+
+        refacetPrefetch: function (filter) {
+            if (filter.indexOf(' OR ') !== -1) { // don't recompute prefetch facet counts for an OR search
+                this.refacet = null;
+            }
+            else { // recompute facets for an AND search or a search with only one facet
+                this.refacet = filter;
+            }
+        },
+
+        addFilters: function (filters) {
+            for (var i = 0; i < filters.length; i++) {
                 if (this.fq.indexOf(filters[i]) == -1) {
                     this.fq.unshift(filters[i]);
                 }
             }
         },
 
-        removeFilters: function(filters) {
-            for (var i=0; i<filters.length; i++) {
+        removeFilters: function (filters) {
+            for (var i = 0; i < filters.length; i++) {
                 var k = this.fq.indexOf(filters[i]);
-                if (k != -1) {
+                if (k !== -1) {
                     this.fq.splice(k, 1);
                 }
             }
