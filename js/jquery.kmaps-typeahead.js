@@ -12,12 +12,14 @@
             max_terms: 999,
             max_defaults: 50,
             min_chars: 1,
+            selected: 'omit', // possible values: 'omit' or 'class'
             ancestors: 'on',
             ancestor_separator: ' - ',
             prefetch_facets: 'off',
             prefetch_field: 'feature_types_xfacet',
             prefetch_filters: ['tree:places', 'ancestor_id_path:13735'],
             prefetch_limit: -1,
+            zero_facets: 'skip', // possible values: 'skip' or 'ignore'
             empty_query: 'level_i:2', //ignored unless min_chars = 0
             empty_limit: 5,
             empty_sort: '',
@@ -32,6 +34,7 @@
         this.settings = $.extend({}, defaults, options);
         this.fq = [];
         this.refacet = null;
+        this.selected = [];
         this._defaults = defaults;
         this._name = pluginName;
         this.init();
@@ -46,6 +49,7 @@
 
             var use_ancestry = (settings.ancestors == 'on');
             var prefetch_facets = (settings.prefetch_facets == 'on');
+            var skip_zeros = (settings.zero_facets == 'skip');
             var ancestor_field = (settings.domain == 'subjects') ? 'ancestor_ids_default' : 'ancestor_ids_pol.admin.hier';
 
             plugin.fq.push('tree:' + settings.domain);
@@ -247,10 +251,11 @@
                 },
                 notFound: function (data) {
                     var msg = 'No results for <span class="kmaps-tt-query">' + data.query + '</span>. ' + settings.no_results_msg;
-                    return '<div class="kmaps-tt-message kmaps-tt-no-results">'+ msg + '</div>';
+                    return '<div class="kmaps-tt-message kmaps-tt-no-results">' + msg + '</div>';
                 },
                 suggestion: function (data) {
-                    return '<div><span class="kmaps-term">' + data.value + '</span>' +
+                    var sc = data.selected ? ' class="kmaps-tt-selected"' : '';
+                    return '<div' + sc + '><span class="kmaps-term">' + data.value + '</span>' +
                         (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
                 }
             });
@@ -275,28 +280,38 @@
                     return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
                 },
                 suggestion: function (data) {
-                    return '<div class="' + (data.count > 0 ? "selectable-facet" : "zero-results-facet") + '"</div>' +
-                        '<span class="kmaps-term">' + data.value + '</span> ' +
+                    var cl = [];
+                    if (data.selected) cl.push('kmaps-tt-selected');
+                    cl.push(data.count > 0 ? 'selectable-facet' : 'zero-results-facet');
+                    return '<div class="' + cl.join(' ') + '"><span class="kmaps-term">' + data.value + '</span> ' +
                         '<span class="kmaps-count">(' + data.count + ')</span>' +
                         (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
                 }
             });
 
-            if (prefetch_facets) {
-                var kmapsEngineWithDefaults = function(q, sync, async) {
-                    if (q === '') {
-                        var facets = kmaps_engine.all();
-                        if (facets.length > 0 && settings.max_defaults > 0) {
-                            sync(facets.sort(sortFacetsDescending).slice(0, Math.min(facets.length, settings.max_defaults)));
+            var filterSelected = function (suggestions) {
+                if (plugin.selected.length == 0) {
+                    return suggestions;
+                }
+                else if (plugin.settings.selected == 'omit') {
+                    return $.grep(suggestions, function (suggestion) {
+                        return $.inArray(suggestion.id, plugin.selected) === -1;
+                    });
+                }
+                else {
+                    return $.map(suggestions, function (suggestion) {
+                        if ($.inArray(suggestion.id, plugin.selected) === -1) {
+                            return suggestion;
                         }
                         else {
-                            kmaps_engine.search(q, sync, async);
+                            suggestion.selected = true;
+                            return suggestion;
                         }
-                    }
-                    else {
-                        kmaps_engine.search(q, sync, async);
-                    }
-                };
+                    });
+                }
+            };
+            var lastCursor;
+            if (prefetch_facets) {
                 input.typeahead(typeaheadOptions,
                     {
                         name: 'facet_counts',
@@ -317,8 +332,48 @@
                         name: settings.domain,
                         limit: 999,//parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
                         display: 'value',
-                        source: kmapsEngineWithDefaults,
-                        templates: prefetch_templates
+                        templates: prefetch_templates,
+                        source: function (q, sync, async) {
+                            if (q === '') {
+                                var facets = kmaps_engine.all();
+                                if (facets.length > 0 && settings.max_defaults > 0) {
+                                    sync(filterSelected(facets.sort(sortFacetsDescending).slice(0, Math.min(facets.length, settings.max_defaults))));
+                                }
+                                else {
+                                    kmaps_engine.search(q, function(suggestions) {
+                                        sync(filterSelected(suggestions))
+                                    }, function(suggestions) {
+                                        async(filterSelected(suggestions));
+                                    });
+                                }
+                            }
+                            else {
+                                kmaps_engine.search(q, function(suggestions) {
+                                    sync(filterSelected(suggestions))
+                                }, function(suggestions) {
+                                    async(filterSelected(suggestions));
+                                });
+                            }
+                        }
+                    }
+                ).bind('typeahead:cursorchange',
+                    function (ev, suggestion) {
+                        if (suggestion === undefined) {
+                            lastCursor = -1;
+                        }
+                        else {
+                            var $wrapper = input.parent();
+                            var cursor = $wrapper.find('.kmaps-tt-suggestion').index($wrapper.find('.kmaps-tt-cursor'));
+                            if (suggestion.selected || (skip_zeros && suggestion.count == 0)) { // skip over already selected suggestions
+                                var diff = cursor - lastCursor;
+                                var delta = lastCursor == -1 && diff > 1 ? -1 : diff > 0 ? +1 : -1;
+                                lastCursor = cursor; // must preceded moveCursor instruction
+                                input.typeahead('moveCursor', delta);
+                            }
+                            else {
+                                lastCursor = cursor;
+                            }
+                        }
                     }
                 );
             }
@@ -328,8 +383,32 @@
                         name: settings.domain,
                         limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
                         display: 'value',
-                        source: kmaps_engine,
-                        templates: templates
+                        templates: templates,
+                        source: function (q, sync, async) {
+                            lastCursor = -1;
+                            kmaps_engine.search(q, sync, function (suggestions) {
+                                async(filterSelected(suggestions));
+                            });
+                        }
+                    }
+                ).bind('typeahead:cursorchange',
+                    function (ev, suggestion) {
+                        if (suggestion === undefined) {
+                            lastCursor = -1;
+                        }
+                        else {
+                            var $wrapper = input.parent();
+                            var cursor = $wrapper.find('.kmaps-tt-suggestion').index($wrapper.find('.kmaps-tt-cursor'));
+                            if (suggestion.selected) { // skip over already selected suggestions
+                                var diff = cursor - lastCursor;
+                                var delta = lastCursor == -1 && diff > 1 ? -1 : diff > 0 ? +1 : -1;
+                                lastCursor = cursor; // must preceded moveCursor instruction
+                                input.typeahead('moveCursor', delta);
+                            }
+                            else {
+                                lastCursor = cursor;
+                            }
+                        }
                     }
                 );
             }
@@ -363,6 +442,10 @@
                     this.fq.splice(k, 1);
                 }
             }
+        },
+
+        trackSelected: function (selected) { // array of ids: [12, 15, 19], or empty array []
+            this.selected = selected;
         },
 
         setValue: function (val) {

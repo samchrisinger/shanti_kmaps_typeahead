@@ -59,7 +59,10 @@
 .kmaps-tt-suggestion p {
     margin: 0;
 }
-
+.kmaps-tt-selected {
+    text-decoration: line-through;
+    color: gray;
+}
 .zero-results-facet {
     color: gray;
 }
