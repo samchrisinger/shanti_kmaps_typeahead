@@ -273,8 +273,9 @@
                     return '<div class="kmaps-tt-message kmaps-tt-no-results">' + msg + '</div>';
                 },
                 suggestion: function (data) {
-                    var sc = data.selected ? ' class="kmaps-tt-selected"' : '';
-                    return '<div' + sc + '><span class="kmaps-term">' + data.value + '</span>' +
+                    var cl = [];
+                    if (data.selected) cl.push('kmaps-tt-selected');
+                    return '<div class="' + cl.join(' ') + '"><span class="kmaps-term">' + data.value + '</span>' +
                         (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
                 }
             });
@@ -306,7 +307,7 @@
                 suggestion: function (data) {
                     var cl = [];
                     if (data.selected) cl.push('kmaps-tt-selected');
-                    cl.push(data.count > 0 ? 'selectable-facet' : 'zero-results-facet');
+                    if (data.count == 0) cl.push('kmaps-tt-zero-facet');
                     return '<div class="' + cl.join(' ') + '"><span class="kmaps-term">' + data.value + '</span> ' +
                         '<span class="kmaps-count">(' + data.count + ')</span>' +
                         (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
