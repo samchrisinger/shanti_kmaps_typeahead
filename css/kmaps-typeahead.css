@@ -67,6 +67,9 @@
     color: gray;
 }
 /* .zero-results-facet.kmaps-tt-suggestion.kmaps-tt-cursor { } */
+.kmaps-tt-query {
+    font-style: italic;
+}
 .kmaps-tt-results {
     font-weight: bold;
 }
