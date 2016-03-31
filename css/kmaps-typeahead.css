@@ -67,3 +67,14 @@
     color: gray;
 }
 /* .zero-results-facet.kmaps-tt-suggestion.kmaps-tt-cursor { } */
+.kmaps-tt-results {
+    font-weight: bold;
+}
+.kmaps-tt-results:after {
+    content: ' ';
+    display: block;
+    border: 1px solid lightgray;
+}
+.kmaps-filter-method {
+    font-weight: bold;
+}

@@ -16,7 +16,7 @@
             ancestors: 'on',
             ancestor_separator: ' - ',
             prefetch_facets: 'off',
-            prefetch_field: 'feature_types_xfacet',
+            prefetch_field: 'feature_types',
             prefetch_filters: ['tree:places', 'ancestor_id_path:13735'],
             prefetch_limit: -1,
             zero_facets: 'skip', // possible values: 'skip' or 'ignore'
@@ -142,6 +142,7 @@
                     }
                 }
             };
+            var prefetch_field = settings.prefetch_field + '_xfacet';
             var sortFacetsDescending = function (a, b) {
                 return b.count - a.count;
             };
@@ -154,7 +155,7 @@
                     'q': '*:*',
                     'rows': 0,
                     'facet': true,
-                    'facet.field': settings.prefetch_field,
+                    'facet.field': prefetch_field,
                     'facet.limit': settings.prefetch_limit,
                     'facet.sort': 'count',
                     'facet.mincount': 1
@@ -165,7 +166,7 @@
                         url: settings.term_index + '/select?' + $.param(prefetch_params, true),
                         cache: false,
                         filter: function (json) {
-                            var raw = json.facet_counts.facet_fields[settings.prefetch_field];
+                            var raw = json.facet_counts.facet_fields[prefetch_field];
                             var facets = [];
                             for (var i = 0; i < raw.length; i += 2) {
                                 var spl = raw[i].indexOf(':');
@@ -180,6 +181,9 @@
                         }
                     }
                 });
+                var refacet_field = settings.prefetch_field + '_autocomplete';
+                var refacet_params = $.extend({}, prefetch_params);
+                delete refacet_params['facet.field'];
                 facet_counts = new Bloodhound({
                     datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
                     queryTokenizer: Bloodhound.tokenizers.whitespace,
@@ -188,11 +192,26 @@
                         return term.id;
                     },
                     remote: {
-                        url: settings.term_index + '/select?' + $.param(prefetch_params, true),
+                        url: settings.term_index + '/select?' + $.param(refacet_params, true),
                         cache: false, // change to true
                         prepare: function (query, remote) {
                             if (plugin.refacet !== null) {
-                                remote.url += '&' + $.param({'fq': plugin.refacet}, true);
+                                var extras = {};
+                                var val = input.val();
+                                if (val) {
+                                    extras = {
+                                        'fq': plugin.refacet,
+                                        'facet.field': refacet_field,
+                                        'facet.prefix': val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ ')
+                                    };
+                                }
+                                else {
+                                    extras = {
+                                        'fq': plugin.refacet,
+                                        'facet.field': prefetch_field
+                                    };
+                                }
+                                remote.url += '&' + $.param(extras, true);
                             }
                             else { // don't go to the server at all
                                 remote.url = null;
@@ -200,13 +219,14 @@
                             return remote;
                         },
                         filter: function (json) {
-                            var raw = json.facet_counts.facet_fields[settings.prefetch_field];
+                            var raw = json.facet_counts.facet_fields[prefetch_field] ? json.facet_counts.facet_fields[prefetch_field] : json.facet_counts.facet_fields[refacet_field];
                             var facets = [];
                             for (var i = 0; i < raw.length; i += 2) {
-                                var spl = raw[i].indexOf(':');
+                                var mixed = raw[i].substring(raw[i].indexOf('|')+1);
+                                var spl = mixed.indexOf(':');
                                 facets.push({
-                                    id: raw[i].substring(0, spl),
-                                    value: raw[i].substring(spl + 1),
+                                    id: mixed.substring(0, spl),
+                                    value: mixed.substring(spl + 1).replace(/_/g,' '),
                                     count: parseInt(raw[i + 1]),
                                     refacet: true
                                 });
@@ -215,7 +235,6 @@
                         }
                     }
                 });
-                facet_counts.initialize();
             }
             kmaps_engine = new Bloodhound(options);
 
@@ -262,18 +281,23 @@
             var prefetch_templates = $.extend({}, default_templates, {
                 header: function (data) {
                     var msg;
-                    if (data.query === '') {
-                        if (settings.max_defaults > data.suggestions.length) {
-                            msg = 'Showing all ' + data.suggestions.length + ' filters';
+                    if (plugin.selected.length == 0) {
+                        if (data.query == '') {
+                            if (settings.max_defaults > data.suggestions.length) {
+                                msg = data.suggestions.length + ' Filters';
+                            }
+                            else {
+                                msg = 'Top ' + settings.max_defaults + ' Filters';
+                            }
                         }
                         else {
-                            msg = 'Showing top ' + settings.max_defaults + ' filters';
+                            msg = 'Add Filter';
                         }
                     }
                     else {
-                        msg = 'Showing filters with <em>' + data.query + '</em>';
+                        msg = 'Add <span class="kmaps-filter-method">OR</span> Filter';
                     }
-                    return '<div class="kmaps-tt-message"><span class="results">' + msg + '</em></span></div>';
+                    return '<div class="kmaps-tt-message kmaps-tt-results">' + msg + '</div>';
                 },
                 notFound: function (data) {
                     var msg = 'No filters with <em>' + data.query + '</em>. ' + settings.no_results_msg;
@@ -291,22 +315,20 @@
 
             var filterSelected = function (suggestions) {
                 if (plugin.selected.length == 0) {
-                    return suggestions;
+                    return $.map(suggestions, function(sugg) {
+                        sugg.selected = false;
+                        return sugg;
+                    });
                 }
                 else if (plugin.settings.selected == 'omit') {
-                    return $.grep(suggestions, function (suggestion) {
-                        return $.inArray(suggestion.id, plugin.selected) === -1;
+                    return $.grep(suggestions, function(sugg) {
+                        return $.inArray(sugg.id, plugin.selected) === -1;
                     });
                 }
                 else {
-                    return $.map(suggestions, function (suggestion) {
-                        if ($.inArray(suggestion.id, plugin.selected) === -1) {
-                            return suggestion;
-                        }
-                        else {
-                            suggestion.selected = true;
-                            return suggestion;
-                        }
+                    return $.map(suggestions, function(sugg) {
+                        sugg.selected = $.inArray(sugg.id, plugin.selected) !== -1;
+                        return sugg;
                     });
                 }
             };
@@ -317,13 +339,22 @@
                         name: 'facet_counts',
                         limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
                         display: 'value',
-                        source: facet_counts,
+                        source: function (q, sync, async) {
+                            facet_counts.search(q, sync, function (suggestions) {
+                                async(filterSelected(suggestions));
+                            });
+                        },
                         templates: {
                             header: function (data) {
-                                return '<div class="kmaps-tt-message">Narrow your search</div>';
+                                var msg = 'Add <span class="kmaps-filter-method">AND</span> Filter';
+                                return '<div class="kmaps-tt-message kmaps-tt-results">' + msg + '</div>';
                             },
                             suggestion: function (data) {
-                                return '<div><span class="kmaps-term">' + data.value + '</span> <span class="kmaps-count">(' + data.count + ')</span>' +
+                                var cl = [];
+                                if (data.selected) cl.push('kmaps-tt-selected');
+                                cl.push('selectable-facet');
+                                return '<div class="' + cl.join(' ') + '"><span class="kmaps-term">' + data.value + '</span> ' +
+                                    '<span class="kmaps-count">(' + data.count + ')</span>' +
                                     (use_ancestry ? ' <span class="kmaps-ancestors">' + data.anstring + '</span>' : '') + '</div>';
                             }
                         }
@@ -340,17 +371,17 @@
                                     sync(filterSelected(facets.sort(sortFacetsDescending).slice(0, Math.min(facets.length, settings.max_defaults))));
                                 }
                                 else {
-                                    kmaps_engine.search(q, function(suggestions) {
+                                    kmaps_engine.search(q, function (suggestions) {
                                         sync(filterSelected(suggestions))
-                                    }, function(suggestions) {
+                                    }, function (suggestions) {
                                         async(filterSelected(suggestions));
                                     });
                                 }
                             }
                             else {
-                                kmaps_engine.search(q, function(suggestions) {
+                                kmaps_engine.search(q, function (suggestions) {
                                     sync(filterSelected(suggestions))
-                                }, function(suggestions) {
+                                }, function (suggestions) {
                                     async(filterSelected(suggestions));
                                 });
                             }
