@@ -27,9 +27,9 @@
     border: 1px solid rgba(0,0,0,.2);
     *border-right-width: 2px;
     *border-bottom-width: 2px;
-    -webkit-border-radius: 6px;
-    -moz-border-radius: 6px;
-    border-radius: 6px;
+    -webkit-border-radius: 0.8rem;
+    -moz-border-radius: 0.8rem;
+    border-radius: 0.8rem;
     -webkit-box-shadow: 0 5px 10px rgba(0,0,0,.2);
     -moz-box-shadow: 0 5px 10px rgba(0,0,0,.2);
     box-shadow: 0 5px 10px rgba(0,0,0,.2);
@@ -37,8 +37,7 @@
     -moz-background-clip: padding;
     background-clip: padding-box;
 }
-.kmaps-tt-suggestion, .kmaps-tt-message {
-    display: block;
+.kmaps-tt-suggestion {
     padding: 3px 20px;
 }
 .kmaps-tt-suggestion:not(.kmaps-tt-selected):not(.kmaps-tt-zero-facet):hover {
@@ -69,9 +68,17 @@
 .kmaps-tt-query {
     font-style: italic;
 }
-.kmaps-tt-results {
+.kmaps-tt-header {
+    padding: 4px 20px 4px 14px;
+    background-color: #eee;
     font-weight: bold;
+    border-top: 2px solid #ddd;
+    border-bottom: 1px solid #ddd;
 }
+.kmaps-tt-message {
+    padding: 3px 14px;
+}
+/*
 .kmaps-tt-results:after {
     content: ' ';
     display: block;
@@ -80,3 +87,4 @@
 .kmaps-filter-method {
     font-weight: bold;
 }
+*/

@@ -266,7 +266,7 @@
             var templates = $.extend({}, default_templates, {
                 header: function (data) {
                     var nres = 'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's');
-                    return '<div class="kmaps-tt-message kmaps-tt-results">' + nres + ' for <span class="kmaps-tt-query">' + data.query + '</span></div>';
+                    return '<div class="kmaps-tt-header kmaps-tt-results">' + nres + ' for <span class="kmaps-tt-query">' + data.query + '</span></div>';
                 },
                 notFound: function (data) {
                     var msg = 'No results for <span class="kmaps-tt-query">' + data.query + '</span>. ' + settings.no_results_msg;
@@ -298,7 +298,7 @@
                     else {
                         msg = 'Add <span class="kmaps-filter-method">OR</span> Filter';
                     }
-                    return '<div class="kmaps-tt-message kmaps-tt-results">' + msg + '</div>';
+                    return '<div class="kmaps-tt-header kmaps-tt-results">' + msg + '</div>';
                 },
                 notFound: function (data) {
                     var msg = 'No filters with <em>' + data.query + '</em>. ' + settings.no_results_msg;
@@ -348,7 +348,7 @@
                         templates: {
                             header: function (data) {
                                 var msg = 'Add <span class="kmaps-filter-method">AND</span> Filter';
-                                return '<div class="kmaps-tt-message kmaps-tt-results">' + msg + '</div>';
+                                return '<div class="kmaps-tt-header kmaps-tt-results">' + msg + '</div>';
                             },
                             suggestion: function (data) {
                                 var cl = [];
