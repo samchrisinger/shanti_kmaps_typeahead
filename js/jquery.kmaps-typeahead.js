@@ -445,7 +445,7 @@
                 );
             }
         },
-
+        
         resetPrefetch: function () {
             this.refacet = null;
         },
@@ -480,9 +480,13 @@
             this.selected = selected;
         },
 
-        setValue: function (val) {
-            $(this.element).val(val);
+        setValue: function(val) {
+            $(this.element).typeahead('val', val);
         },
+        
+        /*setValue: function (val) {
+            $(this.element).val(val);
+        },*/
 
         onSuggest: function (fn) {
             var async = false;
