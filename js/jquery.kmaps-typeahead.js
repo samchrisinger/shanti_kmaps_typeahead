@@ -35,6 +35,8 @@
         this.fq = [];
         this.refacet = null;
         this.selected = [];
+        this.kmaps_engine = null; // Bloodhound instance
+        this.facet_counts = null; // Bloodhound instance
         this._defaults = defaults;
         this._name = pluginName;
         this.init();
@@ -43,7 +45,6 @@
     $.extend(Plugin.prototype, {
         init: function () {
             var plugin = this;
-            var kmaps_engine, facet_counts; //Bloodhound instance
             var input = $(plugin.element);
             var settings = plugin.settings;
 
@@ -87,6 +88,7 @@
                 },
                 remote: {
                     url: url,
+                    cache: false,
                     prepare: function (query, remote) { //http://stackoverflow.com/questions/18688891/typeahead-js-include-dynamic-variable-in-remote-url
                         var extras = {};
                         var val = input.val();
@@ -131,7 +133,7 @@
                         // exclude terms that were already prefetched
                         // ideally other matches would fill the gap
                         filtered.filter(function (term) {
-                            return (kmaps_engine.get([term.id]).length == 0);
+                            return (plugin.kmaps_engine.get([term.id]).length == 0);
                         });
                         if (use_ancestry) {
                             filtered.sort(function (a, b) { // sort results by ancestry
@@ -164,7 +166,7 @@
                     sorter: sortFacetsDescending,
                     prefetch: {
                         url: settings.term_index + '/select?' + $.param(prefetch_params, true),
-                        cache: false,
+                        cache: false, // change to true??
                         filter: function (json) {
                             var raw = json.facet_counts.facet_fields[prefetch_field];
                             var facets = [];
@@ -184,7 +186,7 @@
                 var refacet_field = settings.prefetch_field + '_autocomplete';
                 var refacet_params = $.extend({}, prefetch_params);
                 delete refacet_params['facet.field'];
-                facet_counts = new Bloodhound({
+                plugin.facet_counts = new Bloodhound({
                     datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
                     queryTokenizer: Bloodhound.tokenizers.whitespace,
                     sufficient: settings.max_terms,
@@ -193,7 +195,7 @@
                     },
                     remote: {
                         url: settings.term_index + '/select?' + $.param(refacet_params, true),
-                        cache: false, // change to true
+                        cache: false, // change to true??
                         prepare: function (query, remote) {
                             if (plugin.refacet !== null) {
                                 var extras = {};
@@ -236,7 +238,7 @@
                     }
                 });
             }
-            kmaps_engine = new Bloodhound(options);
+            plugin.kmaps_engine = new Bloodhound(options);
 
             var typeaheadOptions = $.extend(
                 settings.menu ? {menu: settings.menu} : {},
@@ -341,7 +343,7 @@
                         limit: parseInt(settings.max_terms) * 2, // apparently needs to be doubled to accommodate both prefetched and remote terms
                         display: 'value',
                         source: function (q, sync, async) {
-                            facet_counts.search(q, sync, function (suggestions) {
+                            plugin.facet_counts.search(q, sync, function (suggestions) {
                                 async(filterSelected(suggestions));
                             });
                         },
@@ -367,12 +369,12 @@
                         templates: prefetch_templates,
                         source: function (q, sync, async) {
                             if (q === '') {
-                                var facets = kmaps_engine.all();
+                                var facets = plugin.kmaps_engine.all();
                                 if (facets.length > 0 && settings.max_defaults > 0) {
                                     sync(filterSelected(facets.sort(sortFacetsDescending).slice(0, Math.min(facets.length, settings.max_defaults))));
                                 }
                                 else {
-                                    kmaps_engine.search(q, function (suggestions) {
+                                    plugin.kmaps_engine.search(q, function (suggestions) {
                                         sync(filterSelected(suggestions))
                                     }, function (suggestions) {
                                         async(filterSelected(suggestions));
@@ -380,7 +382,7 @@
                                 }
                             }
                             else {
-                                kmaps_engine.search(q, function (suggestions) {
+                                plugin.kmaps_engine.search(q, function (suggestions) {
                                     sync(filterSelected(suggestions))
                                 }, function (suggestions) {
                                     async(filterSelected(suggestions));
@@ -418,7 +420,7 @@
                         templates: templates,
                         source: function (q, sync, async) {
                             lastCursor = -1;
-                            kmaps_engine.search(q, sync, function (suggestions) {
+                            plugin.kmaps_engine.search(q, sync, function (suggestions) {
                                 async(filterSelected(suggestions));
                             });
                         }
@@ -483,10 +485,6 @@
         setValue: function(val) {
             $(this.element).typeahead('val', val);
         },
-        
-        /*setValue: function (val) {
-            $(this.element).val(val);
-        },*/
 
         onSuggest: function (fn) {
             var async = false;
