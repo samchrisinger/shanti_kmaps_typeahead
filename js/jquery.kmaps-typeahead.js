@@ -396,7 +396,7 @@
                             lastCursor = -1;
                         }
                         else {
-                            var $wrapper = input.parent();
+                            var $wrapper = settings.menu ? $(settings.menu) : input.parent();
                             var cursor = $wrapper.find('.kmaps-tt-suggestion').index($wrapper.find('.kmaps-tt-cursor'));
                             if (suggestion.selected || (skip_zeros && suggestion.count == 0)) { // skip over already selected suggestions
                                 var diff = cursor - lastCursor;
@@ -431,7 +431,7 @@
                             lastCursor = -1;
                         }
                         else {
-                            var $wrapper = input.parent();
+                            var $wrapper = settings.menu ? $(settings.menu) : input.parent();
                             var cursor = $wrapper.find('.kmaps-tt-suggestion').index($wrapper.find('.kmaps-tt-cursor'));
                             if (suggestion.selected) { // skip over already selected suggestions
                                 var diff = cursor - lastCursor;
