@@ -252,6 +252,7 @@
                         menu: 'kmaps-tt-menu',
                         dataset: 'kmaps-tt-dataset',
                         suggestion: 'kmaps-tt-suggestion',
+                        selectable: 'kmaps-tt-selectable',
                         empty: 'kmaps-tt-empty',
                         open: 'kmaps-tt-open',
                         cursor: 'kmaps-tt-cursor',
@@ -335,7 +336,6 @@
                     });
                 }
             };
-            var lastCursor;
             if (prefetch_facets) {
                 input.typeahead(typeaheadOptions,
                     {
@@ -390,24 +390,10 @@
                             }
                         }
                     }
-                ).bind('typeahead:cursorchange',
-                    function (ev, suggestion) {
-                        if (suggestion === undefined) {
-                            lastCursor = -1;
-                        }
-                        else {
-                            var $wrapper = settings.menu ? $(settings.menu) : input.parent();
-                            var cursor = $wrapper.find('.kmaps-tt-suggestion').index($wrapper.find('.kmaps-tt-cursor'));
-                            if (suggestion.selected || (skip_zeros && suggestion.count == 0)) { // skip over already selected suggestions
-                                var diff = cursor - lastCursor;
-                                var delta = lastCursor == -1 && diff > 1 ? -1 : diff > 0 ? +1 : -1;
-                                lastCursor = cursor; // must preceded moveCursor instruction
-                                input.typeahead('moveCursor', delta);
-                            }
-                            else {
-                                lastCursor = cursor;
-                            }
-                        }
+                ).bind('typeahead:render',
+                    function () {
+                        var $wrapper = settings.menu ? $(settings.menu) : input.parent();
+                        $wrapper.find('.kmaps-tt-selected, .kmaps-tt-zero-facet').removeClass('kmaps-tt-selectable');
                     }
                 );
             }
@@ -419,30 +405,15 @@
                         display: 'value',
                         templates: templates,
                         source: function (q, sync, async) {
-                            lastCursor = -1;
                             plugin.kmaps_engine.search(q, sync, function (suggestions) {
                                 async(filterSelected(suggestions));
                             });
                         }
                     }
-                ).bind('typeahead:cursorchange',
-                    function (ev, suggestion) {
-                        if (suggestion === undefined) {
-                            lastCursor = -1;
-                        }
-                        else {
-                            var $wrapper = settings.menu ? $(settings.menu) : input.parent();
-                            var cursor = $wrapper.find('.kmaps-tt-suggestion').index($wrapper.find('.kmaps-tt-cursor'));
-                            if (suggestion.selected) { // skip over already selected suggestions
-                                var diff = cursor - lastCursor;
-                                var delta = lastCursor == -1 && diff > 1 ? -1 : diff > 0 ? +1 : -1;
-                                lastCursor = cursor; // must preceded moveCursor instruction
-                                input.typeahead('moveCursor', delta);
-                            }
-                            else {
-                                lastCursor = cursor;
-                            }
-                        }
+                ).bind('typeahead:render',
+                    function () {
+                        var $wrapper = settings.menu ? $(settings.menu) : input.parent();
+                        $wrapper.find('.kmaps-tt-selected').removeClass('kmaps-tt-selectable');
                     }
                 );
             }
