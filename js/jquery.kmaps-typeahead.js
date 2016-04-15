@@ -455,9 +455,14 @@
 
         setValue: function(val) {
             var $el = $(this.element);
-            // see http://stackoverflow.com/questions/15115059/programmatically-triggering-typeahead-js-result-display
-            $el.typeahead('val', (val == '') ? 'x' : ''); // temporarily set to something different
-            $el.focus().typeahead('val', val).focus(); // set to value and trigger new call for suggestions
+            if (this.settings.min_chars > 0 && val == '') {
+                $el.typeahead('val', val);
+            }
+            else {
+                // see http://stackoverflow.com/questions/15115059/programmatically-triggering-typeahead-js-result-display
+                $el.typeahead('val', (val == 'x') ? 'y' : 'x'); // temporarily set to something different
+                $el.focus().typeahead('val', val).focus(); // set to value and trigger new call for suggestions
+            }
         },
 
         onSuggest: function (fn) {
