@@ -462,6 +462,8 @@
                 // see http://stackoverflow.com/questions/15115059/programmatically-triggering-typeahead-js-result-display
                 $el.typeahead('val', (val == 'x') ? 'y' : 'x'); // temporarily set to something different
                 $el.focus().typeahead('val', val).focus(); // set to value and trigger new call for suggestions
+                var $wrapper = settings.menu ? $(settings.menu) : $el.parent();
+                $wrapper.find('.kmaps-tt-menu').addClass('kmaps-tt-open');
             }
         },
 
