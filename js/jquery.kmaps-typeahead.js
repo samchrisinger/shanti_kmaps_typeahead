@@ -37,8 +37,6 @@
         this.selected = [];
         this.kmaps_engine = null; // Bloodhound instance
         this.facet_counts = null; // Bloodhound instance
-        this._defaults = defaults;
-        this._name = pluginName;
         this.init();
     }
 
@@ -50,7 +48,6 @@
 
             var use_ancestry = (settings.ancestors == 'on');
             var prefetch_facets = (settings.prefetch_facets == 'on');
-            var skip_zeros = (settings.zero_facets == 'skip');
             var ancestor_field = (settings.domain == 'subjects') ? 'ancestor_ids_default' : 'ancestor_ids_pol.admin.hier';
 
             plugin.fq.push('tree:' + settings.domain);
@@ -390,11 +387,6 @@
                             }
                         }
                     }
-                ).bind('typeahead:render',
-                    function () {
-                        var $wrapper = settings.menu ? $(settings.menu) : input.parent();
-                        $wrapper.find('.kmaps-tt-selected, .kmaps-tt-zero-facet').removeClass('kmaps-tt-selectable');
-                    }
                 );
             }
             else {
@@ -410,13 +402,20 @@
                             });
                         }
                     }
-                ).bind('typeahead:render',
-                    function () {
-                        var $wrapper = settings.menu ? $(settings.menu) : input.parent();
-                        $wrapper.find('.kmaps-tt-selected').removeClass('kmaps-tt-selectable');
-                    }
                 );
             }
+            input.bind('typeahead:render',
+                function () {
+                    var $wrapper = !settings.menu ? input.parent() : $(settings.menu);
+                    $wrapper.find('.kmaps-tt-selected, .kmaps-tt-zero-facet').removeClass('kmaps-tt-selectable');
+                }
+            ).bind('typeahead:beforeclose',
+                function (e) {
+                    if ($(e.target).is(':focus')) { // keep menu open if input element is still focused
+                        return false;
+                    }
+                }
+            );
         },
         
         resetPrefetch: function () {
@@ -462,8 +461,6 @@
                 // see http://stackoverflow.com/questions/15115059/programmatically-triggering-typeahead-js-result-display
                 $el.typeahead('val', (val == 'x') ? 'y' : 'x'); // temporarily set to something different
                 $el.focus().typeahead('val', val).focus(); // set to value and trigger new call for suggestions
-                var $wrapper = settings.menu ? $(settings.menu) : $el.parent();
-                $wrapper.find('.kmaps-tt-menu').addClass('kmaps-tt-open');
             }
         },
 
