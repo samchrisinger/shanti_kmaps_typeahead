@@ -7,7 +7,7 @@
         defaults = {
             term_index: "http://kidx.shanti.virginia.edu/solr/termindex-dev-update",
             domain: "places",
-            root_kmapid: 13735,
+            root_kmapid: '',
             autocomplete_field: 'name_autocomplete',
             max_terms: 999,
             max_defaults: 50,
