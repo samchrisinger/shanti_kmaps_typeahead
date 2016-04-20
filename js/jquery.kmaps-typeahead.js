@@ -60,8 +60,8 @@
             var fl = [];
             fl.push('id', 'header');
             if (use_ancestry) {
-                fl.push('ancestors', 'ancestor_id_path');
-                fl.push(ancestor_field);
+                plugin.fq.push('ancestor_id_path:*'); // force this field to be present
+                fl.push('ancestors', 'ancestor_id_path', ancestor_field);
             }
             if (settings.fields) {
                 fl = fl.concat(settings.fields.split(','));
