@@ -5,11 +5,11 @@
 
     var pluginName = "kmapsTypeahead",
         defaults = {
-            term_index: "http://kidx.shanti.virginia.edu/solr/termindex-dev-update",
+            term_index: "http://kidx.shanti.virginia.edu/solr/termindex-dev",
             domain: "places",
             root_kmapid: '',
             autocomplete_field: 'name_autocomplete',
-            max_terms: 999,
+            max_terms: 150,
             max_defaults: 50,
             min_chars: 1,
             selected: 'omit', // possible values: 'omit' or 'class'
