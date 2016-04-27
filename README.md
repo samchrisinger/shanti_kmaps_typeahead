@@ -27,14 +27,14 @@ The plugin takes the following core options:
  * `domain`: By default `places`, otherwise `subjects`.
  * `root_kmapid`: If you wish to restrict your search to only retrieve terms under a certain node in the KMaps subjects or places tree, then specify the numeric id of that node.
     Exclude the domain prefix (so `6403`, not `subjects-6403`).
- * `autocomplete_field`: You shouldn't need to change this; it is set by default to `name_autocomplete`.
- * `min_chars`: The number of characters 
+ * `autocomplete_field`: By default `name_autocomplete`, you shouldn't need to change this.
+ * `min_chars`: The number of characters the user has to type before a search is launched.
  * `max_terms`: The number of terms to return per page of results, by default `150`. A high value for `max_terms` may negatively impact the performance of the plugin.
  * `fields`: To request additional document fields when querying Solr, add a comma separated list of fields here. By default, the following fields are returned:
    `id, header, ancestors, ancestor_id_path` and either `ancestor_ids_default` (for subjects) or `ancestor_ids_pol.admin.hier` (for places).
- * `filters`: Here you can add a string that will be added to all searches as a filter query. For example, `ancestor_ids_default:20` or `ancestor_ids_default:6403 AND -ancestor_ids_default:20`.
- * `selected`: By calling the method `trackSelected`, you can have the plugin keep track of which terms have already been selected. The default behavior of the plugin sets `selected` to `omit`,
-    which hides already selected terms. Alternatively, you can set `selected` to `class`, which will assign the CSS class `kmaps-tt-selected` to the already selected term.
+ * `filters`: This string will be added to all searches as a filter query. For example, `ancestor_ids_default:20` or `ancestor_ids_default:6403 AND -ancestor_ids_default:20`.
+ * `selected`: By calling the plugin's `trackSelected` method, you can have the plugin keep track of which terms have already been selected. The default behavior of the plugin sets `selected` to `omit`,
+    which hides already selected terms. Alternatively, you can set `selected` to `class`, which gives the CSS class `kmaps-tt-selected` to the already selected term.
             
 ## Two Types of Widgets
 
@@ -43,23 +43,23 @@ The KMaps Typeahead plugin can used in two different ways.
 ### Selecting Terms for Use in Classification
 
 In the first use of the plugin, you are selecting terms in order to classify objects. In this use, you can select any term that isn't excluded by the options described above.
-Since many terms have the same name and can only be distinguished by their ancestry, it is valuable on this use to have the ancestry displayed. You can change the ancestor
+Since many terms have the same name and can only be distinguished by their ancestry, it is valuable to display a term's ancestry. You can change the ancestor
 separator by setting the following option on the plugin:
 
  * `ancestor_separator`: By default this is ` - `. Some people would change it to ` < `.
 
-If you want results to be displayed on an empty search, then you can specify an empty query (obviously in this case, autocomplete doesn't help):
+If you want results to be displayed on an empty search, then you can specify an empty query (in this case, obviously, autocomplete doesn't help):
 
  * `min_chars`: Set this to `0` so that suggestions are triggered on an empty search.
  * `empty_query`: By default, `level_i:2`, this will become Solr's `q` parameter.
  * `empty_limit`: By default `5`, this is the maximum number of terms that will be displayed on an empty query. This is passed to Solr as the `rows` parameter.
  * `empty_sort`: This can be used to sort the terms returned by an empty query. This is passed to Solr as the `sort` parameter.
 
-The following simple invocation of the plugin shows how it can be used to display terms falling under the 'Tibet and the Himalayas' subjects
+The following simple invocation of the plugin shows how it can be used to display terms falling under the "Tibet and the Himalayas" subjects
 sub-tree:
 
 ```javascript
-$typeahead.kmapsTypeahead({
+$input.kmapsTypeahead({
     term_index: 'http://kidx.shanti.virginia.edu/solr/termindex-dev',
     domain: 'subjects',
     root_kmapid: 6403,
@@ -73,10 +73,10 @@ $typeahead.kmapsTypeahead({
 In the second use of the plugin, you are selecting terms that are facets of other terms. For example, KMaps places can be classified by two types of subjects, "feature types" and
 "associated subjects". This use of the plugin allows you to search the terms that can and do classify KMaps places.
 
-When selecting facets, we take a different approach. First, we prefetch the facets that have actually been applied in a particular domain. In so doing, we obtain the facet 
-(term) name and its count, but not its ancestry. Then, when a search is launched, we also grab all terms that *could have been* applied as facets. These are known as *zero facets*.
+When selecting facets, we take a different approach. First, we prefetch the facets that have actually been applied in a particular domain. In so doing, we obtain the term name and 
+its facet count, but not its ancestry. Then, when a search is launched, we also pull in terms that *could have been* applied as facets. These are known as *zero facets*.
 In a space where large numbers of facets are used in practice, it might not be necessary to display zero facets. However, we find it helpful to display unselectable zero facets
-so that users get an idea of what terms are *available in principle* for application.
+so that users get an idea of what terms are *available in principle* for application to a particular domain.
 
 In this use of the plugin, the following options are important:
 
@@ -97,7 +97,7 @@ In this use of the plugin, the following options are important:
 The following example invocation of the plugin shows how it can be used for feature type filtering of places:
 
 ```javascript
-$filter.kmapsTypeahead({
+$input.kmapsTypeahead({
     term_index: 'http://kidx.shanti.virginia.edu/solr/termindex-dev',
     domain: 'subjects', // filter by subject
     filters: 'ancestor_ids_default:20', // restrict possible term space to feature types
