@@ -33,7 +33,8 @@
         this.element = element;
         this.settings = $.extend({}, defaults, options);
         this.fq = [];
-        this.refacet = null;
+        this.refetch = [];
+        this.refacet = [];
         this.selected = [];
         this.kmaps_engine = null; // Bloodhound instance
         this.facet_counts = null; // Bloodhound instance
@@ -101,7 +102,8 @@
                                 extras = {
                                     'q': settings.empty_query,
                                     'rows': settings.empty_limit,
-                                    'sort': settings.empty_sort
+                                    'sort': settings.empty_sort,
+                                    'fq': plugin.fq
                                 };
                             }
                         }
@@ -149,7 +151,7 @@
                 var prefetch_params = {
                     'wt': 'json',
                     'indent': true,
-                    'fq': settings.prefetch_filters,
+                    //'fq': settings.prefetch_filters,
                     'fl': '*',
                     'q': '*:*',
                     'rows': 0,
@@ -164,6 +166,13 @@
                     prefetch: {
                         url: settings.term_index + '/select?' + $.param(prefetch_params, true),
                         cache: false, // change to true??
+                        prepare: function (prefetch) {
+                            var extras = {
+                                'fq': settings.prefetch_filters.concat(plugin.refetch)
+                            };
+                            prefetch.url += '&' + $.param(extras, true);
+                            return prefetch;
+                        },
                         filter: function (json) {
                             var raw = json.facet_counts.facet_fields[prefetch_field];
                             var facets = [];
@@ -194,7 +203,7 @@
                         url: settings.term_index + '/select?' + $.param(refacet_params, true),
                         cache: false, // change to true??
                         prepare: function (query, remote) {
-                            if (plugin.refacet !== null) {
+                            if (plugin.refacet.length > 0) {
                                 var extras = {};
                                 var val = input.val();
                                 if (val) {
@@ -266,7 +275,9 @@
             var templates = $.extend({}, default_templates, {
                 header: function (data) {
                     var nres = 'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's');
-                    return '<div class="kmaps-tt-header kmaps-tt-results">' + nres + ' for <span class="kmaps-tt-query">' + data.query + '</span></div>';
+                    if (data.query) nres += ' for <span class="kmaps-tt-query">' + data.query + '</span>';
+                    return '<div class="kmaps-tt-header kmaps-tt-results">' + nres + '</div>';
+                    //return '<div class="kmaps-tt-header kmaps-tt-results">' + nres + ' for <span class="kmaps-tt-query">' + data.query + '</span></div>';
                 },
                 notFound: function (data) {
                     var msg = 'No results for <span class="kmaps-tt-query">' + data.query + '</span>. ' + settings.no_results_msg;
@@ -301,7 +312,13 @@
                     return '<div class="kmaps-tt-header kmaps-tt-results">' + msg + '</div>';
                 },
                 notFound: function (data) {
-                    var msg = 'No filters with <em>' + data.query + '</em>. ' + settings.no_results_msg;
+                    var msg;
+                    if (data.query) {
+                        msg = 'No filters with <em>' + data.query + '</em>. ' + settings.no_results_msg;
+                    }
+                    else {
+                        msg = 'No filter matches any results. ' + settings.no_results_msg;
+                    }
                     return '<div class="kmaps-tt-message"><span class="no-results">' + msg + '</span></div>';
                 },
                 suggestion: function (data) {
@@ -417,17 +434,21 @@
                 }
             );
         },
-        
-        resetPrefetch: function () {
-            this.refacet = null;
+
+        refetchPrefetch: function (filters) {
+            this.refetch = filters || [];
+            // https://github.com/twitter/typeahead.js/pull/703
+            this.kmaps_engine.clear();
+            this.kmaps_engine.clearPrefetchCache();
+            this.kmaps_engine.initialize(true);
         },
 
-        refacetPrefetch: function (filter) {
-            if (filter.indexOf(' OR ') !== -1) { // don't recompute prefetch facet counts for an OR search
-                this.refacet = null;
+        refacetPrefetch: function (filters) {
+            if (filters.length == 0 || filters[0].indexOf(' OR ') !== -1) { // don't recompute prefetch facet counts for an OR search
+                this.refacet = [];
             }
             else { // recompute facets for an AND search or a search with only one facet
-                this.refacet = filter;
+                this.refacet = filters;
             }
         },
 
