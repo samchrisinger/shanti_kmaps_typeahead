@@ -230,11 +230,11 @@
                             var raw = json.facet_counts.facet_fields[prefetch_field] ? json.facet_counts.facet_fields[prefetch_field] : json.facet_counts.facet_fields[refacet_field];
                             var facets = [];
                             for (var i = 0; i < raw.length; i += 2) {
-                                var mixed = raw[i].substring(raw[i].indexOf('|')+1);
+                                var mixed = raw[i].substring(raw[i].indexOf('|') + 1);
                                 var spl = mixed.indexOf(':');
                                 facets.push({
                                     id: mixed.substring(0, spl),
-                                    value: mixed.substring(spl + 1).replace(/_/g,' '),
+                                    value: mixed.substring(spl + 1).replace(/_/g, ' '),
                                     count: parseInt(raw[i + 1]),
                                     refacet: true
                                 });
@@ -333,18 +333,18 @@
 
             var filterSelected = function (suggestions) {
                 if (plugin.selected.length == 0) {
-                    return $.map(suggestions, function(sugg) {
+                    return $.map(suggestions, function (sugg) {
                         sugg.selected = false;
                         return sugg;
                     });
                 }
                 else if (plugin.settings.selected == 'omit') {
-                    return $.grep(suggestions, function(sugg) {
+                    return $.grep(suggestions, function (sugg) {
                         return $.inArray(sugg.id, plugin.selected) === -1;
                     });
                 }
                 else {
-                    return $.map(suggestions, function(sugg) {
+                    return $.map(suggestions, function (sugg) {
                         sugg.selected = $.inArray(sugg.id, plugin.selected) !== -1;
                         return sugg;
                     });
@@ -473,7 +473,7 @@
             this.selected = selected;
         },
 
-        setValue: function(val) {
+        setValue: function (val, focus) {
             var $el = $(this.element);
             if (this.settings.min_chars > 0 && val == '') {
                 $el.typeahead('val', val);
@@ -481,7 +481,12 @@
             else {
                 // see http://stackoverflow.com/questions/15115059/programmatically-triggering-typeahead-js-result-display
                 $el.typeahead('val', (val == 'x') ? 'y' : 'x'); // temporarily set to something different
-                $el.focus().typeahead('val', val).focus(); // set to value and trigger new call for suggestions
+                if (focus) {
+                    $el.focus().typeahead('val', val).focus(); // trigger new suggestions and acquire focus
+                }
+                else {
+                    $el.typeahead('val', val); // trigger suggestions without focus
+                }
             }
         },
 
