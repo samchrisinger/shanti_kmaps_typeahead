@@ -203,19 +203,19 @@
                         url: settings.term_index + '/select?' + $.param(refacet_params, true),
                         cache: false, // change to true??
                         prepare: function (query, remote) {
-                            if (plugin.refacet.length > 0) {
+                            if (plugin.refacet.length > 0) { // no refaceting for an OR search
                                 var extras = {};
                                 var val = input.val();
                                 if (val) {
                                     extras = {
-                                        'fq': plugin.refacet,
+                                        'fq': plugin.refacet.concat(plugin.refetch),
                                         'facet.field': refacet_field,
                                         'facet.prefix': val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ ')
                                     };
                                 }
                                 else {
                                     extras = {
-                                        'fq': plugin.refacet,
+                                        'fq': plugin.refacet.concat(plugin.refetch),
                                         'facet.field': prefetch_field
                                     };
                                 }
@@ -435,12 +435,13 @@
             );
         },
 
-        refetchPrefetch: function (filters) {
+        refetchPrefetch: function (filters, callback) {
             this.refetch = filters || [];
             // https://github.com/twitter/typeahead.js/pull/703
             this.kmaps_engine.clear();
             this.kmaps_engine.clearPrefetchCache();
-            this.kmaps_engine.initialize(true);
+            var promise = this.kmaps_engine.initialize(true);
+            promise.done(callback);
         },
 
         refacetPrefetch: function (filters) {
