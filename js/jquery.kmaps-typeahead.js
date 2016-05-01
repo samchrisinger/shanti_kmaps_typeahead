@@ -151,7 +151,6 @@
                 var prefetch_params = {
                     'wt': 'json',
                     'indent': true,
-                    //'fq': settings.prefetch_filters,
                     'fl': '*',
                     'q': '*:*',
                     'rows': 0,
@@ -307,7 +306,7 @@
                         }
                     }
                     else {
-                        msg = 'Add <span class="kmaps-filter-method">OR</span> Filter';
+                        msg = 'Filter terms with <span class="kmaps-filter-method">\'OR\'</span>';
                     }
                     return '<div class="kmaps-tt-header kmaps-tt-results">' + msg + '</div>';
                 },
@@ -363,7 +362,7 @@
                         },
                         templates: {
                             header: function (data) {
-                                var msg = 'Add <span class="kmaps-filter-method">AND</span> Filter';
+                                var msg = 'Filter terms with <span class="kmaps-filter-method">\'AND\'</span>';
                                 return '<div class="kmaps-tt-header kmaps-tt-results">' + msg + '</div>';
                             },
                             suggestion: function (data) {
