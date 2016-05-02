@@ -38,6 +38,7 @@
         this.selected = [];
         this.kmaps_engine = null; // Bloodhound instance
         this.facet_counts = null; // Bloodhound instance
+        this.menu = null; // dropdown menu
         this.init();
     }
 
@@ -422,13 +423,29 @@
             }
             input.bind('typeahead:render',
                 function () {
-                    var $wrapper = !settings.menu ? input.parent() : $(settings.menu);
-                    $wrapper.find('.kmaps-tt-selected, .kmaps-tt-zero-facet').removeClass('kmaps-tt-selectable');
+                    plugin.getMenu().find('.kmaps-tt-selected, .kmaps-tt-zero-facet').removeClass('kmaps-tt-selectable');
                 }
             ).bind('typeahead:beforeclose',
                 function (e) {
                     if ($(e.target).is(':focus')) { // keep menu open if input element is still focused
                         return false;
+                    }
+                }
+            );
+            var hideOnClick = false;
+            input.on('mousedown',
+                function (e) {
+                    if (plugin.getMenu().is(':visible')) {
+                        hideOnClick = true;
+                    }
+                    else {
+                        hideOnClick = false;
+                    }
+                }
+            ).on('click',
+                function (e) {
+                    if (hideOnClick) {
+                        input.blur();
                     }
                 }
             );
@@ -488,6 +505,14 @@
                     $el.typeahead('val', val); // trigger suggestions without focus
                 }
             }
+        },
+
+        getMenu: function () {
+            if (this.menu == null) {
+                var $wrapper = !this.settings.menu ? $(this.element).parent() : $(this.settings.menu);
+                this.menu = $wrapper.find('.kmaps-tt-menu');
+            }
+            return this.menu;
         },
 
         onSuggest: function (fn) {
