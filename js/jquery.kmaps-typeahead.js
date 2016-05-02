@@ -38,7 +38,7 @@
         this.selected = [];
         this.kmaps_engine = null; // Bloodhound instance
         this.facet_counts = null; // Bloodhound instance
-        this.menu = null; // dropdown menu
+        this.$menu = null; // dropdown menu
         this.init();
     }
 
@@ -508,11 +508,15 @@
         },
 
         getMenu: function () {
-            if (this.menu == null) {
-                var $wrapper = !this.settings.menu ? $(this.element).parent() : $(this.settings.menu);
-                this.menu = $wrapper.find('.kmaps-tt-menu');
+            if (this.$menu == null) {
+                var $input = $(this.element);
+                var $wrapper = !this.settings.menu ? $input.parent() : $(this.settings.menu);
+                this.$menu = $wrapper.find('.kmaps-tt-menu');
+                this.$menu.on('click', 'button.close', function() {
+                    $input.blur();
+                });
             }
-            return this.menu;
+            return this.$menu;
         },
 
         onSuggest: function (fn) {
