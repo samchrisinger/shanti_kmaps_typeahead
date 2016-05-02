@@ -275,7 +275,7 @@
                 header: function (data) {
                     var nres = 'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's');
                     if (data.query) nres += ' for <span class="kmaps-tt-query">' + data.query + '</span>';
-                    return '<div class="kmaps-tt-header kmaps-tt-results">' + nres + '</div>';
+                    return '<div class="kmaps-tt-header kmaps-tt-results"><button class="close" aria-hidden="true" type="button">×</button>' + nres + '</div>';
                     //return '<div class="kmaps-tt-header kmaps-tt-results">' + nres + ' for <span class="kmaps-tt-query">' + data.query + '</span></div>';
                 },
                 notFound: function (data) {
@@ -308,7 +308,7 @@
                     else {
                         msg = 'Filter terms with <span class="kmaps-filter-method">\'OR\'</span>';
                     }
-                    return '<div class="kmaps-tt-header kmaps-tt-results">' + msg + '</div>';
+                    return '<div class="kmaps-tt-header kmaps-tt-results"><button class="close" aria-hidden="true" type="button">×</button>' + msg + '</div>';
                 },
                 notFound: function (data) {
                     var msg;
@@ -363,7 +363,7 @@
                         templates: {
                             header: function (data) {
                                 var msg = 'Filter terms with <span class="kmaps-filter-method">\'AND\'</span>';
-                                return '<div class="kmaps-tt-header kmaps-tt-results">' + msg + '</div>';
+                                return '<div class="kmaps-tt-header kmaps-tt-results"><button class="close" aria-hidden="true" type="button">×</button>' + msg + '</div>';
                             },
                             suggestion: function (data) {
                                 var cl = [];

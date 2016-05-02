@@ -78,6 +78,9 @@
 .kmaps-tt-message {
     padding: 3px 14px;
 }
+.kmaps-tt-dataset:not(:empty) ~ .kmaps-tt-dataset button.close {
+    display: none;
+}
 /*
 .kmaps-tt-results:after {
     content: ' ';
