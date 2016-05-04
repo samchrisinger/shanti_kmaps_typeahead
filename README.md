@@ -66,7 +66,7 @@ $input.kmapsTypeahead({
     root_kmapid: 6403,
     max_terms: 20,
     selected: 'class',
-    pager: 'on
+    pager: 'on'
 });
 ```
 
