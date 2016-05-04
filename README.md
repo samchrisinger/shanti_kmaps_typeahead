@@ -35,7 +35,8 @@ The plugin takes the following core options:
  * `filters`: This string will be added to all searches as a filter query. For example, `ancestor_ids_default:20` or `ancestor_ids_default:6403 AND -ancestor_ids_default:20`.
  * `selected`: By calling the plugin's `trackSelected` method, you can have the plugin keep track of which terms have already been selected. The default behavior of the plugin sets `selected` to `omit`,
     which hides already selected terms. Alternatively, you can set `selected` to `class`, which gives the CSS class `kmaps-tt-selected` to the already selected term.
-            
+ * `pager`: Set to `on` if you want autocomplete search results to be paged. This option has only been tested with the classificatory use of the plugin. Defaults to `off`. 
+
 ## Two Types of Widgets
 
 The KMaps Typeahead plugin can used in two different ways.
