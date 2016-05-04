@@ -35,7 +35,7 @@ The plugin takes the following core options:
  * `filters`: This string will be added to all searches as a filter query. For example, `ancestor_ids_default:20` or `ancestor_ids_default:6403 AND -ancestor_ids_default:20`.
  * `selected`: By calling the plugin's `trackSelected` method, you can have the plugin keep track of which terms have already been selected. The default behavior of the plugin sets `selected` to `omit`,
     which hides already selected terms. Alternatively, you can set `selected` to `class`, which gives the CSS class `kmaps-tt-selected` to the already selected term.
- * `pager`: Set to `on` if you want autocomplete search results to be paged. This option has only been tested with the classificatory use of the plugin. Defaults to `off`. 
+ * `pager`: Set to `on` if you want autocomplete search results to be paged. Defaults to `off`. 
 
 ## Two Types of Widgets
 
@@ -65,9 +65,12 @@ $input.kmapsTypeahead({
     domain: 'subjects',
     root_kmapid: 6403,
     max_terms: 20,
-    selected: 'class'
+    selected: 'class',
+    pager: 'on
 });
-```            
+```
+
+By turning the `pager` option `on`, all matching terms are made available for selection. Each page shows only `max_terms` results, in this case 20. 
 
 ### Selecting Terms as Search Facets
 
@@ -111,7 +114,10 @@ $input.kmapsTypeahead({
     selected: 'omit', // omit already selected facets from results
 });
 ```
- 
+
+Note that the `pager` option is ignored by the faceting use of the plugin. We could make it work, but at this point not many terms have been applied as facets to other terms.
+Therefore, it is easy enough to load all facets into memory, which reduces the need for paging.
+
 ## Hiding the Dropdown Menu
 
 Suppose you want to render the suggestions somewhere else other than the dropdown (for example, in a tree).
