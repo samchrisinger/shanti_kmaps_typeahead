@@ -5,8 +5,8 @@
 
     var pluginName = "kmapsTypeahead",
         defaults = {
-            term_index: "http://kidx.shanti.virginia.edu/solr/termindex-dev",
-            domain: "places",
+            term_index: 'http://kidx.shanti.virginia.edu/solr/termindex-dev',
+            domain: 'places',
             root_kmapid: '',
             autocomplete_field: 'name_autocomplete',
             max_terms: 150,
@@ -15,6 +15,7 @@
             selected: 'omit', // possible values: 'omit' or 'class'
             ancestors: 'on',
             ancestor_separator: ' - ',
+            pager: 'off', // or 'on'
             prefetch_facets: 'off',
             prefetch_field: 'feature_types',
             prefetch_filters: ['tree:places', 'ancestor_id_path:13735'],
@@ -38,6 +39,8 @@
         this.selected = [];
         this.kmaps_engine = null; // Bloodhound instance
         this.facet_counts = null; // Bloodhound instance
+        this.fake = null; // fake query for setValue
+        this.start = 0; // for paging
         this.$menu = null; // dropdown menu
         this.init();
     }
@@ -49,6 +52,7 @@
             var settings = plugin.settings;
 
             var use_ancestry = (settings.ancestors == 'on');
+            var result_paging = (settings.pager == 'on');
             var prefetch_facets = (settings.prefetch_facets == 'on');
             var ancestor_field = (settings.domain == 'subjects') ? 'ancestor_ids_default' : 'ancestor_ids_pol.admin.hier';
 
@@ -95,6 +99,7 @@
                             extras = {
                                 'q': settings.autocomplete_field + ':' + val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ '),
                                 'rows': settings.max_terms,
+                                'start': plugin.start,
                                 'fq': plugin.fq
                             };
                         }
@@ -104,21 +109,27 @@
                                     'q': settings.empty_query,
                                     'rows': settings.empty_limit,
                                     'sort': settings.empty_sort,
+                                    'start': plugin.start,
                                     'fq': plugin.fq
                                 };
                             }
+                        }
+                        if (query !== plugin.fake) {
+                            plugin.start = 0;
                         }
                         remote.url += '&' + $.param(extras, true);
                         return remote;
                     },
                     filter: function (json) {
-                        var filtered = $.map(json.response.docs, function (doc) {
+                        var filtered = $.map(json.response.docs, function (doc, index) {
                             var highlighting = json.highlighting[doc.id];
                             var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
                             var item = {
                                 id: doc.id.substring(doc.id.indexOf('-') + 1),
                                 doc: doc,
                                 value: val,
+                                index: json.response.start + index,
+                                numFound: json.response.numFound,
                                 count: 0 // for good measure
                             };
                             if (use_ancestry) {
@@ -135,11 +146,11 @@
                         filtered.filter(function (term) {
                             return (plugin.kmaps_engine.get([term.id]).length == 0);
                         });
-                        if (use_ancestry) {
+                        /*if (use_ancestry) {
                             filtered.sort(function (a, b) { // sort results by ancestry
                                 return a.doc.ancestor_id_path > b.doc.ancestor_id_path;
                             });
-                        }
+                        }*/
                         return filtered;
                     }
                 }
@@ -274,10 +285,41 @@
             };
             var templates = $.extend({}, default_templates, {
                 header: function (data) {
-                    var nres = 'Showing ' + data.suggestions.length + ' result' + (data.suggestions.length == 1 ? '' : 's');
-                    if (data.query) nres += ' for <span class="kmaps-tt-query">' + data.query + '</span>';
-                    return '<div class="kmaps-tt-header kmaps-tt-results"><button class="close" aria-hidden="true" type="button">×</button>' + nres + '</div>';
-                    //return '<div class="kmaps-tt-header kmaps-tt-results">' + nres + ' for <span class="kmaps-tt-query">' + data.query + '</span></div>';
+                    var results;
+                    if (data.query) {
+                        results = 'Results for "<span class="kmaps-tt-query">' + data.query + '</span>"';
+                    }
+                    else {
+                        results = 'All results';
+                    }
+                    var pager = '';
+                    if (result_paging) {
+                        var pagesize = Number(plugin.settings.max_terms);
+                        var start = data.suggestions[0].index;
+                        var numFound = data.suggestions[0].numFound;
+                        var current = Math.floor(start/pagesize) + 1;
+                        var pagecount = Math.ceil(numFound/pagesize);
+                        pager = '<ul class="typeahead-pager pager">';
+                        if (current > 1) { // link to first and previous pages
+                            pager += '<li class="pager-first active first"><a data-goto-page="1" title="Go to first page"><span class="icon"></span></a></li>';
+                            pager += '<li class="pager-previous active"><a data-goto-page="' + (current-1) + '" title="Go to previous page"><span class="icon"></span></a></li>';
+                        }
+                        else {
+                            pager += '<li class="pager-first first"><span class="icon"></span></li>';
+                            pager += '<li class="pager-previous"><span class="icon"></span></li>';
+                        }
+                        pager += '<li class="pager-item">Page ' + current + ' of ' + pagecount + '</li>';
+                        if (current < pagecount) { // link to next and last pages
+                            pager += '<li class="pager-next active"><a data-goto-page="' + (current+1) + '" title="Go to next page"><span class="icon"></span></a></li>';
+                            pager += '<li class="pager-last active last"><a data-goto-page="' + pagecount + '" title="Go to last page"><span class="icon"></span></a></li>';
+                        }
+                        else {
+                            pager += '<li class="pager-next"><span class="icon"></span></li>';
+                            pager += '<li class="pager-last last"><span class="icon"></span></li>';
+                        }
+                        pager += '</ul>';
+                    }
+                    return '<div class="kmaps-tt-header kmaps-tt-results"><button class="close" aria-hidden="true" type="button">×</button>' + results + pager + '</div>';
                 },
                 notFound: function (data) {
                     var msg = 'No results for <span class="kmaps-tt-query">' + data.query + '</span>. ' + settings.no_results_msg;
@@ -433,22 +475,24 @@
                 }
             );
             var hideOnClick = false;
-            input.on('mousedown',
-                function (e) {
-                    if (plugin.getMenu().is(':visible')) {
-                        hideOnClick = true;
+            if (!settings.menu) { // ignore if dropdown has been moved, as with tree
+                input.on('mousedown',
+                    function (e) {
+                        if (!plugin.getMenu().is(':hidden')) {
+                            hideOnClick = true;
+                        }
+                        else {
+                            hideOnClick = false;
+                        }
                     }
-                    else {
-                        hideOnClick = false;
+                ).on('click',
+                    function (e) {
+                        if (hideOnClick) {
+                            input.blur();
+                        }
                     }
-                }
-            ).on('click',
-                function (e) {
-                    if (hideOnClick) {
-                        input.blur();
-                    }
-                }
-            );
+                );
+            }
         },
 
         refetchPrefetch: function (filters, callback) {
@@ -490,14 +534,16 @@
             this.selected = selected;
         },
 
-        setValue: function (val, focus) {
+        setValue: function (val, focus, start) {
             var $el = $(this.element);
             if (this.settings.min_chars > 0 && val == '') {
                 $el.typeahead('val', val);
             }
             else {
                 // see http://stackoverflow.com/questions/15115059/programmatically-triggering-typeahead-js-result-display
-                $el.typeahead('val', (val == 'x') ? 'y' : 'x'); // temporarily set to something different
+                this.start = start || 0;
+                this.fake = (val == 'x') ? 'y' : 'x';
+                $el.typeahead('val', this.fake); // temporarily set to something different
                 if (focus) {
                     $el.focus().typeahead('val', val).focus(); // trigger new suggestions and acquire focus
                 }
@@ -508,15 +554,32 @@
         },
 
         getMenu: function () {
-            if (this.$menu == null) {
-                var $input = $(this.element);
-                var $wrapper = !this.settings.menu ? $input.parent() : $(this.settings.menu);
-                this.$menu = $wrapper.find('.kmaps-tt-menu');
-                this.$menu.on('click', 'button.close', function() {
-                    $input.blur();
-                });
+            var plugin = this;
+            if (plugin.$menu == null) {
+                var $input = $(plugin.element);
+                if (!plugin.settings.menu) {
+                    plugin.$menu = $input.parent().find('.kmaps-tt-menu');
+                }
+                else {
+                    plugin.$menu = $(plugin.settings.menu);
+                }
+                plugin.$menu.on('click', 'button.close',
+                    function() {
+                        $input.blur();
+                    }
+                ).on('click', '.active a',
+                    function() {
+                        var page = $(this).attr('data-goto-page');
+                        var start = (page-1) * plugin.settings.max_terms;
+                        plugin.setValue($input.typeahead('val'), true, start);
+                    }
+                );
             }
             return this.$menu;
+        },
+        
+        getStart: function() {
+            return plugin.start;
         },
 
         onSuggest: function (fn) {
