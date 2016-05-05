@@ -495,6 +495,10 @@
             }
         },
 
+        trackSelected: function (selected) { // array of ids: [12, 15, 19], or empty array []
+            this.selected = selected;
+        },
+        
         refetchPrefetch: function (filters, callback) {
             this.refetch = filters || [];
             // https://github.com/twitter/typeahead.js/pull/703
@@ -528,10 +532,6 @@
                     this.fq.splice(k, 1);
                 }
             }
-        },
-
-        trackSelected: function (selected) { // array of ids: [12, 15, 19], or empty array []
-            this.selected = selected;
         },
 
         setValue: function (val, focus, start) {

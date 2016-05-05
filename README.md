@@ -118,18 +118,115 @@ $input.kmapsTypeahead({
 Note that the `pager` option is ignored by the faceting use of the plugin. We could make it work, but at this point not many terms have been applied as facets to other terms.
 Therefore, it is easy enough to load all facets into memory, which reduces the need for paging.
 
-## Hiding the Dropdown Menu
+## Methods
 
-Suppose you want to render the suggestions somewhere else other than the dropdown (for example, in a tree).
-Then follow these steps:
+The plugin exposes several useful public methods.
 
-1. Add a hidden wrapper to your markup:
+`trackSelected`: Call this method to enact the `selected` option described above. Pass this method an array of ids that have already been selected by the user, excluding
+the *subjects-* or *places-* prefixes.
 
-   ```
-   <div id="menu-wrapper" style="display:none;"></div>
-   ```
+```javascript
+$input.kmapsTypeahead('trackSelected', [104, 4112]);
+```
 
-2. Render the menu inside the wrapper by specifying the "menu" option:
+These ids will then either be omitted from the typeahead dropdown, or unselectable, depending on the value of the `selected` option.
+
+Note that you have to pass all selected options at once; there is no facility to add or remove items. To reset, pass an empty array.
+
+`addFilters`: Use this method to filter a typeahead search. For example, suppose you start with an input element that will search all KMap Places. But wait: now you want to
+restrict your search to Geluk Monasteries. Then add the associated subject 'Geluk' (subjects-914) and the feature type 'Monastery' (subjects-104) as filters:
+
+```javascript
+$input.kmapsTypeahead('addFilters', ['feature_type_ids:104', 'associated_subject_ids:914']);
+```
+
+The filters will be added as `fq` parameters to the Solr query.
+
+To combine two queries on the same field into an 'AND' query, you can pass two filters, as illustrated above, or combine them into a single query, like this one which
+filters on monasteries that are also nunneries (subjects-106).
+
+```javascript
+$input.kmapsTypeahead('addFilters', ['feature_type_ids:(104 AND 106)']);
+```
+
+'OR' queries work in the same way. To filter on monasteries or villages, use:
+
+```javascript
+$input.kmapsTypeahead('addFilters', ['feature_type_ids:(104 OR 4112)']);
+```
+
+`removeFilters`: Use this method to remove filters that have already been added. For example:
+
+```javascript
+$input.kmapsTypeahead('removeFilters', ['feature_type_ids:104', 'associated_subject_ids:914']);
+```
+
+`refacetPrefetch`: When using a KMaps Typeahead search widget for faceting, you select facets that are then used to further narrow a search. If you are
+searching KMaps Places, and you facet on the feature type 'Monastery', you will then want to know, what other facets do places that are monasteries have? This requires
+recomputing counts for facets that co-exist with 'Monastery'. Illustrating with an example, there are 2044 places that are monasteries, and 152 that are temples. But
+only 5 of the monasteries are temples. Call this method to recompute facet counts after a filter has been applied. Essentially, you pass your filter to this method,
+which then adds it to the `prefetch_filters` in order to get new facet counts.
+
+```javascript
+$input.kmapsTypeahead('refacetPrefetch', ['feature_type_ids:104']);
+```
+
+To reset the faceting to its start state, pass an empty array:
+
+```javascript
+$input.kmapsTypeahead('refacetPrefetch', []);
+```
+
+Facets only need to be recomputed for 'AND' searches. Passing an 'OR' filter to this method has the same effect as passing an empty array.
+
+Note that this method only applies to the faceting use of the plugin. 
+
+`refetchPrefetch`: When you are only using one filtering method, 'OR' counts never need to change; there will always be 2044 monasteries, so this count doesn't
+need to be recomputed. However, when the application of one filter affects the 'OR' counts of another, then you will need to recompute *all* facet counts for a filter.
+Let's say that you are filtering on both feature types and associated subjects. You add 'Monastery' as a feature type filter. At this point, you may no longer care about
+associated subjects that don't apply to monasteries. If that's right, then you need to recompute all associated subject facet counts in light of your feature type filter.
+To do so, call this method.
+
+```javascript
+$input.kmapsTypeahead('refetchPrefetch', ['feature_type_ids:104'], function () {
+    $input.kmapsTypeahead('setValue', $input.typeahead('val'), false);
+});
+```
+
+In this scenario, you need to refetch the facet counts for `$input`, because it is a filter that is *linked* to another filter which has had 'Monastery' added to it.
+
+Because this method involves an asynchronous call to the server for new facet counts, it has a callback.
+
+`setValue`: When you have added filters to a search, or refaceted, or refetched, then you must make sure that a new search is launched when you click in the input text
+area, rather than an old search with old filters being used. To ensure that this happens, call this method:
+
+```javascript
+$input.kmapsTypeahead('setValue', search_key, true);
+```
+
+Pass two parameters to this method. The first parameter is the search key, which says what the search should be. If you want the search to stay as it is, just pass
+`$input.typeahead('val')` as your search value. The second parameter is a boolean which specifies whether or not the input area should receive focus as a result of 
+the method call. Pass `true` if the user is already in the input area, and `false` otherwise.
+
+I've had difficulty getting typeahead.js to force a new search, and so this method is a bit of a hack.
+
+`onSuggest`: Call this method to add an onSuggest listener to be passed suggestions as they come in. For example:
+
+```javascript
+$input.kmapsTypeahead('onSuggest',
+  function(suggestions) {
+     for (var i=0; i<suggestions.length; i++) {
+        highlightSuggestionInTree(suggestions[i]);
+     }
+  }
+);
+```
+
+For examples of these methods in action, see the Javascript in [SHANTI KMaps Fields](https://github.com/shanti-uva/drupal_shanti_kmaps_fields)
+
+## Moving the Dropdown Menu
+
+If you want the dropdown to appear somewhere other than its usual place, then use the `menu` option on the plugin:
 
    ```
    $("#typeahead").kmapsTypeahead({
@@ -139,22 +236,8 @@ Then follow these steps:
    })
    ```
 
-3. Register a callback and do something with the suggestions:
+Make sure you've put this id somewhere in your HTML:
 
    ```
-   $('#typeahead').kmapsTypeahead('onSuggest',
-      function(suggestions) {
-         for (var i=0; i<suggestions.length; i++) {
-            highlightSuggestionInTree(suggestions[i]);
-         }
-      }
-   );
+   <div id="menu-wrapper"></div>
    ```
-
-4. Update the value of the input element when it is selected in your UI:
-
-   ```
-   $('#typeahead').kmapsTypeahead('setValue', val);
-   ```
-
-For an example, see index.html in the html directory.
