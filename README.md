@@ -123,14 +123,14 @@ Therefore, it is easy enough to load all facets into memory, which reduces the n
 The plugin exposes several useful public methods.
 
 * `trackSelected`: Call this method to enact the `selected` option described above. Pass an array of ids that have already been selected by the user, excluding
-the *subjects-* and *places-* prefixes.
+  the *subjects-* and *places-* prefixes.
 
-```javascript
-$input.kmapsTypeahead('trackSelected', [104, 4112]);
-```
+  ```javascript
+  $input.kmapsTypeahead('trackSelected', [104, 4112]);
+  ```
 
-These ids will then either be omitted from the typeahead dropdown, or unselectable, depending on the value of the `selected` option. Note that you have to pass all 
-selected options at once; there is no facility to add or remove items. To reset, pass an empty array.
+  These ids will then either be omitted from the typeahead dropdown, or unselectable, depending on the value of the `selected` option. Note that you have to pass all 
+  selected options at once; there is no facility to add or remove items. To reset, pass an empty array.
 
 * `addFilters`: Use this method to filter a typeahead search. For example, suppose you start with an input element that will search all KMap Places. But wait: now you want to
 restrict your search to Geluk Monasteries. Then add the associated subject 'Geluk' (subjects-914) and the feature type 'Monastery' (subjects-104) as filters:
