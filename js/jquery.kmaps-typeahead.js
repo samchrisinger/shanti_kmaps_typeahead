@@ -33,6 +33,7 @@
     function Plugin(element, options) {
         this.element = element;
         this.settings = $.extend({}, defaults, options);
+        this.params = {};
         this.fq = [];
         this.refetch = [];
         this.refacet = [];
@@ -42,6 +43,7 @@
         this.fake = null; // fake query for setValue
         this.start = 0; // for paging
         this.$menu = null; // dropdown menu
+        this.response = null; // solr response
         this.init();
     }
 
@@ -117,10 +119,12 @@
                         if (query !== plugin.fake) {
                             plugin.start = 0;
                         }
+                        $.extend(true, extras, plugin.params);
                         remote.url += '&' + $.param(extras, true);
                         return remote;
                     },
                     filter: function (json) {
+                        plugin.response = json; // store response... what if cached?
                         var filtered = $.map(json.response.docs, function (doc, index) {
                             var highlighting = json.highlighting[doc.id];
                             var val = settings.autocomplete_field in highlighting ? highlighting[settings.autocomplete_field][0] : doc.header; //take first highlight if present
@@ -534,6 +538,10 @@
             }
         },
 
+        mergeParams: function (params) {
+            this.params = params;
+        },
+
         setValue: function (val, focus, start) {
             var $el = $(this.element);
             if (this.settings.min_chars > 0 && val == '') {
@@ -577,9 +585,13 @@
             }
             return this.$menu;
         },
-        
+
+        getResponse: function() {
+            return this.response;
+        },
+
         getStart: function() {
-            return plugin.start;
+            return this.start;
         },
 
         onSuggest: function (fn) {
