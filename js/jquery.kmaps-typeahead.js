@@ -22,7 +22,7 @@
             prefetch_limit: -1,
             zero_facets: 'skip', // possible values: 'skip' or 'ignore'
             empty_query: 'level_i:2', //ignored unless min_chars = 0
-            empty_limit: 5,
+            empty_limit: 10,
             empty_sort: '',
             fields: '',
             filters: '',
@@ -502,14 +502,22 @@
         trackSelected: function (selected) { // array of ids: [12, 15, 19], or empty array []
             this.selected = selected;
         },
-        
+
+        refetchCallback: function() {
+            var plugin = this;
+            var $el = $(this.element);
+            return function() {
+                plugin.setValue($el.typeahead('val'), false);
+            };
+        },
+
         refetchPrefetch: function (filters, callback) {
+            callback = callback || this.refetchCallback();
             this.refetch = filters || [];
             // https://github.com/twitter/typeahead.js/pull/703
             this.kmaps_engine.clear();
             this.kmaps_engine.clearPrefetchCache();
-            var promise = this.kmaps_engine.initialize(true);
-            promise.done(callback);
+            this.kmaps_engine.initialize(true).done(callback);
         },
 
         refacetPrefetch: function (filters) {
