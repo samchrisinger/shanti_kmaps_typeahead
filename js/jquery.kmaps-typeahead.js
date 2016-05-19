@@ -564,7 +564,7 @@
                     $el.focus().typeahead('val', val).focus(); // trigger new suggestions and acquire focus
                 }
                 else {
-                    $el.typeahead('val', val); // trigger suggestions without focus
+                    $el.blur().typeahead('val', val); // trigger suggestions without focus
                 }
             }
         },
