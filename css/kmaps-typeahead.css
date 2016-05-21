@@ -78,13 +78,3 @@
 .kmaps-tt-dataset:not(:empty) + .kmaps-tt-dataset button.close {
     display: none;
 }
-/*
-.kmaps-tt-results:after {
-    content: ' ';
-    display: block;
-    border: 1px solid lightgray;
-}
-.kmaps-filter-method {
-    font-weight: bold;
-}
-*/
