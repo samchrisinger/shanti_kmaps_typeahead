@@ -24,6 +24,7 @@
             empty_query: 'level_i:2', //ignored unless min_chars = 0
             empty_limit: 10,
             empty_sort: '',
+            sort: '',
             fields: '',
             filters: '',
             menu: '',
@@ -101,6 +102,7 @@
                             extras = {
                                 'q': settings.autocomplete_field + ':' + val.toLowerCase().replace(/[\s\u0f0b\u0f0d]+/g, '\\ '),
                                 'rows': settings.max_terms,
+                                'sort': settings.sort,
                                 'start': plugin.start,
                                 'fq': plugin.fq
                             };

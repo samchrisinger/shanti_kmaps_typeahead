@@ -40,7 +40,7 @@
 .kmaps-tt-suggestion {
     padding: 3px 20px;
 }
-.kmaps-tt-suggestion:not(.kmaps-tt-selected):not(.kmaps-tt-zero-facet):hover {
+.kmaps-tt-suggestion:hover:not(.kmaps-tt-selected):not(.kmaps-tt-zero-facet) {
     color: #fff;
     background-color: #428bca;
 }
