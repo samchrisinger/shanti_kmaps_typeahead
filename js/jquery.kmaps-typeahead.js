@@ -314,7 +314,15 @@
                             pager += '<li class="pager-first first"><span class="icon"></span></li>';
                             pager += '<li class="pager-previous"><span class="icon"></span></li>';
                         }
-                        pager += '<li class="pager-item">Page ' + current + ' of ' + pagecount + '</li>';
+                        pager += '<li class="pager-item">Page</li>';
+                        if (!plugin.settings.menu) {
+                            pager += '<li class="pager-item current"> ' + current + ' </li>';
+                        }
+                        else {
+                            var pager_input = '<input class="pager-input" type="text" value="' + current + '" title="Enter page, then press Return.">';
+                            pager += '<li class="pager-item widget active">' + pager_input + '</li>';
+                        }
+                        pager += '<li class="pager-item">of ' + pagecount + '</li>';
                         if (current < pagecount) { // link to next and last pages
                             pager += '<li class="pager-next active"><a data-goto-page="' + (current+1) + '" title="Go to next page"><span class="icon"></span></a></li>';
                             pager += '<li class="pager-last active last"><a data-goto-page="' + pagecount + '" title="Go to last page"><span class="icon"></span></a></li>';
