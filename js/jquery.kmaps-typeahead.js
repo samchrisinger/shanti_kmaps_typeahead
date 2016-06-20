@@ -600,8 +600,9 @@
                         plugin.setValue($input.typeahead('val'), true, start);
                     }
                 ).on('click', '.pager-input',
-                    function() {
-                        return false;
+                    function(e) {
+                        e.stopImmediatePropagation();
+                        e.preventDefault();
                     }
                 );
             }
