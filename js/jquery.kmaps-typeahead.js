@@ -315,13 +315,9 @@
                             pager += '<li class="pager-previous"><span class="icon"></span></li>';
                         }
                         pager += '<li class="pager-item">Page</li>';
-                        if (!plugin.settings.menu) {
-                            pager += '<li class="pager-item current"> ' + current + ' </li>';
-                        }
-                        else {
-                            var pager_input = '<input class="pager-input" type="text" value="' + current + '" title="Enter page, then press Return.">';
-                            pager += '<li class="pager-item widget active">' + pager_input + '</li>';
-                        }
+                        pager += '<li class="pager-item current"> ' + current + ' </li>';
+                        // var pager_input = '<input class="pager-input" type="text" value="' + current + '" title="Enter page, then press Return.">';
+                        // pager += '<li class="pager-item widget active">' + pager_input + '</li>';
                         pager += '<li class="pager-item">of ' + pagecount + '</li>';
                         if (current < pagecount) { // link to next and last pages
                             pager += '<li class="pager-next active"><a data-goto-page="' + (current+1) + '" title="Go to next page"><span class="icon"></span></a></li>';
@@ -598,11 +594,6 @@
                         var page = $(this).attr('data-goto-page');
                         var start = (page-1) * plugin.settings.max_terms;
                         plugin.setValue($input.typeahead('val'), true, start);
-                    }
-                ).on('click', '.pager-input',
-                    function(e) {
-                        e.stopImmediatePropagation();
-                        e.preventDefault();
                     }
                 );
             }
