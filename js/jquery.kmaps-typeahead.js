@@ -599,6 +599,10 @@
                         var start = (page-1) * plugin.settings.max_terms;
                         plugin.setValue($input.typeahead('val'), true, start);
                     }
+                ).on('click', '.pager-input',
+                    function() {
+                        return false;
+                    }
                 );
             }
             return this.$menu;
