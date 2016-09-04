@@ -122,6 +122,8 @@
                             plugin.start = 0;
                         }
                         $.extend(true, extras, plugin.params);
+                        remote.dataType = 'jsonp';
+                        remote.jsonp = 'json.wrf';
                         remote.url += '&' + $.param(extras, true);
                         return remote;
                     },
@@ -187,6 +189,8 @@
                             var extras = {
                                 'fq': settings.prefetch_filters.concat(plugin.refetch)
                             };
+                            prefetch.dataType = 'jsonp';
+                            prefetch.jsonp = 'json.wrf';
                             prefetch.url += '&' + $.param(extras, true);
                             return prefetch;
                         },
@@ -236,6 +240,8 @@
                                         'facet.field': prefetch_field
                                     };
                                 }
+                                remote.dataType = 'jsonp';
+                                remote.jsonp = 'json.wrf';
                                 remote.url += '&' + $.param(extras, true);
                             }
                             else { // don't go to the server at all
