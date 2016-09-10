@@ -291,6 +291,9 @@
       );
 
       var templates = {
+        pending: function () {
+          return '<div class="kmaps-tt-message kmaps-tt-searching">Searching ...</div>'
+        },
         header: function (data) {
           var results;
           if (data.query) {
