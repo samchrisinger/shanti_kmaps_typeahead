@@ -302,38 +302,12 @@
           else {
             results = 'All results';
           }
-          var pager = '';
-          if (result_paging) {
-            var pagesize = Number(plugin.settings.max_terms);
-            var start = data.suggestions[0].index;
-            var numFound = data.suggestions[0].numFound;
-            var current = Math.floor(start / pagesize) + 1;
-            var pagecount = Math.ceil(numFound / pagesize);
-            pager = '<ul class="typeahead-pager pager">';
-            if (current > 1) { // link to first and previous pages
-              pager += '<li class="pager-first active first"><a data-goto-page="1" title="Go to first page"><span class="icon"></span></a></li>';
-              pager += '<li class="pager-previous active"><a data-goto-page="' + (current - 1) + '" title="Go to previous page"><span class="icon"></span></a></li>';
-            }
-            else {
-              pager += '<li class="pager-first first"><span class="icon"></span></li>';
-              pager += '<li class="pager-previous"><span class="icon"></span></li>';
-            }
-            pager += '<li class="pager-item">Page</li>';
-            pager += '<li class="pager-item current"> ' + current + ' </li>';
-            // var pager_input = '<input class="pager-input" type="text" value="' + current + '" title="Enter page, then press Return.">';
-            // pager += '<li class="pager-item widget active">' + pager_input + '</li>';
-            pager += '<li class="pager-item">of ' + pagecount + '</li>';
-            if (current < pagecount) { // link to next and last pages
-              pager += '<li class="pager-next active"><a data-goto-page="' + (current + 1) + '" title="Go to next page"><span class="icon"></span></a></li>';
-              pager += '<li class="pager-last active last"><a data-goto-page="' + pagecount + '" title="Go to last page"><span class="icon"></span></a></li>';
-            }
-            else {
-              pager += '<li class="pager-next"><span class="icon"></span></li>';
-              pager += '<li class="pager-last last"><span class="icon"></span></li>';
-            }
-            pager += '</ul>';
-          }
+          var pager = !result_paging ? '' : KMapsUtil.getTypeaheadPager(Number(plugin.settings.max_terms), data.suggestions[0].index, data.suggestions[0].numFound);
           return '<div class="kmaps-tt-header kmaps-tt-results"><button class="close" aria-hidden="true" type="button">×</button>' + results + pager + '</div>';
+        },
+        footer: function (data) {
+          var pager = !result_paging ? '' : KMapsUtil.getTypeaheadPager(Number(plugin.settings.max_terms), data.suggestions[0].index, data.suggestions[0].numFound);
+          return '<div class="kmaps-tt-footer kmaps-tt-results">' + pager + '</div>';
         },
         notFound: function (data) {
           var msg = 'No results for <span class="kmaps-tt-query">' + data.query + '</span>. ' + settings.no_results_msg;
