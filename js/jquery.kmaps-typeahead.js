@@ -586,6 +586,15 @@
         ).on('click', '.pager-input',
           function () {
             $(this).focus();
+            // see https://davidwalsh.name/caret-end
+            if (typeof this.selectionStart == "number") {
+              this.selectionStart = this.selectionEnd = this.value.length;
+            } else if (typeof this.createTextRange != "undefined") {
+              this.focus();
+              var range = this.createTextRange();
+              range.collapse(false);
+              range.select();
+            }
           }
         ).on('keydown', '.pager-input',
           function (e) {
