@@ -85,9 +85,7 @@ KMapsUtil.getTypeaheadPager = function (pagesize, start, numFound) {
     pager += '<li class="pager-previous"><span class="icon"></span></li>';
   }
   pager += '<li class="pager-item">Page</li>';
-  pager += '<li class="pager-item current"> ' + current + ' </li>';
-  // var pager_input = '<input class="pager-input" type="text" value="' + current + '" title="Enter page, then press Return.">';
-  // pager += '<li class="pager-item widget active">' + pager_input + '</li>';
+  pager += '<li class="pager-item widget active"><input class="pager-input" type="text" value="' + current + '" data-last="' + pagecount + '" title="Enter page, then press Return."></li>';
   pager += '<li class="pager-item">of ' + pagecount + '</li>';
   if (current < pagecount) { // link to next and last pages
     pager += '<li class="pager-next active"><a data-goto-page="' + (current + 1) + '" title="Go to next page"><span class="icon"></span></a></li>';

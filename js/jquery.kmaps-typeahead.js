@@ -45,6 +45,7 @@
     this.start = 0; // for paging
     this.$menu = null; // dropdown menu
     this.response = null; // solr response
+    this.keepopen = false; // user paging may be in progress
     this.init();
   }
 
@@ -457,7 +458,7 @@
         }
       ).bind('typeahead:beforeclose',
         function (e) {
-          if ($(e.target).is(':focus')) { // keep menu open if input element is still focused
+          if (plugin.keepopen || $(e.target).is(':focus')) { // keep menu open if input element is still focused or user paging is in progress
             return false;
           }
         }
@@ -565,6 +566,7 @@
         }
         plugin.$menu.on('click', 'button.close',
           function () {
+            if (!$input.is(':focus')) $input.focus();
             $input.blur();
           }
         ).on('click', '.active a',
@@ -572,6 +574,30 @@
             var page = $(this).attr('data-goto-page');
             var start = (page - 1) * plugin.settings.max_terms;
             plugin.setValue($input.typeahead('val'), true, start);
+          }
+        ).on('mouseenter', '.pager-input',
+          function (e) {
+            plugin.keepopen = true;
+          }
+        ).on('mouseleave', '.pager-input',
+          function (e) {
+            plugin.keepopen = false;
+          }
+        ).on('click', '.pager-input',
+          function () {
+            $(this).focus();
+          }
+        ).on('keydown', '.pager-input',
+          function (e) {
+            if (e.keyCode == 13) {
+              var last = parseInt($(this).attr('data-last'));
+              var page = parseInt($(this).val());
+              if (page > last) page = last;
+              else if (page < 1) page = 1;
+              var start = (page - 1) * plugin.settings.max_terms;
+              plugin.setValue($input.typeahead('val'), true, start);
+              plugin.keepopen = false;
+            }
           }
         );
       }
