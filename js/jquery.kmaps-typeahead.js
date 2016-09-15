@@ -458,8 +458,8 @@
         }
       ).bind('typeahead:beforeclose',
         function (e) {
-          if (plugin.keepopen || $(e.target).is(':focus')) { // keep menu open if input element is still focused or user paging is in progress
-          //  return false;
+          if (plugin.keepopen) { // keep menu open if input element is still focused or user paging is in progress
+            return false;
           }
         }
       );
