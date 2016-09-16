@@ -52,6 +52,9 @@
 .kmaps-tt-zero-facet {
     color: gray;
 }
+.kmaps-tt-zero-facet .kmaps-term{
+    text-decoration: line-through;
+}
 .kmaps-tt-header {
     padding: 4px 20px 4px 14px;
     background-color: #eee;
