@@ -46,6 +46,7 @@
     this.$menu = null; // dropdown menu
     this.response = null; // solr response
     this.keepopen = false; // user paging may be in progress
+    this.filter_change = []; // functions to call if filters change
     this.init();
   }
 
@@ -520,6 +521,9 @@
           this.fq.unshift(filters[i]);
         }
       }
+      for (var i = 0; i < this.filter_change.length; i++) {
+        this.filter_change[i](filters);
+      }
     },
 
     removeFilters: function (filters) {
@@ -528,6 +532,9 @@
         if (k !== -1) {
           this.fq.splice(k, 1);
         }
+      }
+      for (var i = 0; i < this.filter_change.length; i++) {
+        this.filter_change[i](filters);
       }
     },
 
@@ -641,7 +648,11 @@
           }
         }
       );
-    }
+    },
+
+    onFilterChange: function (fn) {
+      this.filter_change.push(fn);
+    },
 
   });
 
